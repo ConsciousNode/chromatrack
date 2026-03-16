@@ -4871,4 +4871,23 @@
         updateSongModeBtn();
         updateChordButtons();
         updateFxButtons();
-
+        updateFilterButtons();
+        renderSongSteps();
+        applyGridSize();
+        
+        // Auto-load shared state from URL
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const p = params.get('p');
+            if (p) {
+                const state = deserializeState(p);
+                if (state) applySharedState(state);
+            }
+        })();
+        
+        document.addEventListener('contextmenu', e => {
+            if (e.target.closest('.grid-container')) e.preventDefault();
+        });
+    </script>
+</body>
+</html>
