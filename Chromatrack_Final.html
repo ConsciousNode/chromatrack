@@ -227,7 +227,6 @@
             border-style: solid;
         }
 
-        /* Diff Overlays */
         .cell.diff-add {
             outline: 2px solid rgba(234, 179, 8, 0.8);
             outline-offset: -2px;
@@ -273,6 +272,31 @@
         .copy-dest {
             animation: pulse-copy 1.5s infinite;
         }
+
+        /* Fullscreen Mode Styles */
+        body.fullscreen-mode .control-panel {
+            display: none !important;
+        }
+        body.fullscreen-mode #gridOuter {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            max-width: 100vw;
+            z-index: 100;
+            background: var(--bg-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+        body.fullscreen-mode .sequencer-wrapper {
+            width: 100%;
+        }
+        body.fullscreen-mode details {
+            display: none;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4 lg:p-8">
@@ -310,6 +334,10 @@
                     <span>Stop</span>
                 </button>
                 
+                <button id="fullscreenBtn" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-3 py-2.5 rounded-lg font-bold text-sm" title="Fullscreen (F)">
+                    ⛶
+                </button>
+                
                 <div class="flex flex-col items-center">
                     <label class="text-xs font-bold text-zinc-400 mb-1 uppercase tracking-wider">Rows (<span id="rowsDisplay">16</span>)</label>
                     <input type="range" id="rowsSlider" min="4" max="16" value="16" step="1" class="w-20">
@@ -336,6 +364,13 @@
                 </div>
 
                 <div class="flex flex-col items-center">
+                    <label class="text-xs font-bold text-zinc-400 mb-1 uppercase tracking-wider">Groove</label>
+                    <button id="grooveBtn" class="w-20 h-8 rounded text-xs font-bold uppercase bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700 transition-colors">
+                        Straight
+                    </button>
+                </div>
+
+                <div class="flex flex-col items-center">
                     <label for="volumeSlider" class="text-xs font-bold text-zinc-400 mb-1 uppercase tracking-wider">Vol (<span id="volumeDisplay">70</span>%)</label>
                     <input type="range" id="volumeSlider" min="0" max="100" value="70" class="w-24 md:w-32">
                 </div>
@@ -356,6 +391,10 @@
                     <button class="pat-btn w-8 h-8 rounded text-sm font-bold border border-transparent" data-slot="1">2</button>
                     <button class="pat-btn w-8 h-8 rounded text-sm font-bold border border-transparent" data-slot="2">3</button>
                     <button class="pat-btn w-8 h-8 rounded text-sm font-bold border border-transparent" data-slot="3">4</button>
+                    <button class="pat-btn w-8 h-8 rounded text-sm font-bold border border-transparent" data-slot="4">5</button>
+                    <button class="pat-btn w-8 h-8 rounded text-sm font-bold border border-transparent" data-slot="5">6</button>
+                    <button class="pat-btn w-8 h-8 rounded text-sm font-bold border border-transparent" data-slot="6">7</button>
+                    <button class="pat-btn w-8 h-8 rounded text-sm font-bold border border-transparent" data-slot="7">8</button>
                     
                     <div class="w-px h-6 bg-zinc-700 mx-1"></div>
                     
@@ -415,6 +454,26 @@
                     <button class="transpose-down-btn w-6 h-6 rounded text-xs font-bold bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700" data-pat="3">▼</button>
                     <span class="transpose-display w-8 text-center text-xs font-bold text-zinc-300" data-pat="3">0</span>
                     <button class="transpose-up-btn w-6 h-6 rounded text-xs font-bold bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700" data-pat="3">▲</button>
+                </div>
+                <div class="flex items-center gap-1" id="transposeGroup4">
+                    <button class="transpose-down-btn w-6 h-6 rounded text-xs font-bold bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700" data-pat="4">▼</button>
+                    <span class="transpose-display w-8 text-center text-xs font-bold text-zinc-300" data-pat="4">0</span>
+                    <button class="transpose-up-btn w-6 h-6 rounded text-xs font-bold bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700" data-pat="4">▲</button>
+                </div>
+                <div class="flex items-center gap-1" id="transposeGroup5">
+                    <button class="transpose-down-btn w-6 h-6 rounded text-xs font-bold bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700" data-pat="5">▼</button>
+                    <span class="transpose-display w-8 text-center text-xs font-bold text-zinc-300" data-pat="5">0</span>
+                    <button class="transpose-up-btn w-6 h-6 rounded text-xs font-bold bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700" data-pat="5">▲</button>
+                </div>
+                <div class="flex items-center gap-1" id="transposeGroup6">
+                    <button class="transpose-down-btn w-6 h-6 rounded text-xs font-bold bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700" data-pat="6">▼</button>
+                    <span class="transpose-display w-8 text-center text-xs font-bold text-zinc-300" data-pat="6">0</span>
+                    <button class="transpose-up-btn w-6 h-6 rounded text-xs font-bold bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700" data-pat="6">▲</button>
+                </div>
+                <div class="flex items-center gap-1" id="transposeGroup7">
+                    <button class="transpose-down-btn w-6 h-6 rounded text-xs font-bold bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700" data-pat="7">▼</button>
+                    <span class="transpose-display w-8 text-center text-xs font-bold text-zinc-300" data-pat="7">0</span>
+                    <button class="transpose-up-btn w-6 h-6 rounded text-xs font-bold bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700" data-pat="7">▲</button>
                 </div>
             </div>
         </div>
@@ -646,13 +705,28 @@
         </div>
     </div>
 
+    <!-- Keyboard Shortcuts -->
+    <details class="w-full max-w-5xl mt-4 text-xs text-zinc-500">
+        <summary class="cursor-pointer hover:text-zinc-300 transition-colors font-bold uppercase tracking-wider">
+            ⌨ Keyboard Shortcuts
+        </summary>
+        <div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 bg-zinc-900/50 rounded-lg border border-zinc-800">
+            <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">Space</kbd> Play / Stop</div>
+            <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">1–8</kbd> Select Pattern</div>
+            <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">M</kbd> Mutate</div>
+            <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">R</kbd> Random</div>
+            <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">Shift+⌫</kbd> Clear</div>
+            <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">F</kbd> Fullscreen</div>
+        </div>
+    </details>
+
     <script>
         /**
          * AUDIO ENGINE & SCHEDULER
          */
         const ROWS = 16;
         const COLS = 16;
-        const NUM_PATTERNS = 4;
+        const NUM_PATTERNS = 8;
         
         let activeRows = 16;  
         let activeCols = 16;  
@@ -775,6 +849,19 @@
 
         // Humanize State
         let humanizeAmount = 0; // 0.0 to 1.0
+        
+        // Groove State
+        const GROOVES = [
+            { name: 'Straight',  offsets: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0] },
+            { name: 'Shuffle',   offsets: [0,18,0,18, 0,18,0,18, 0,18,0,18, 0,18,0,18] },
+            { name: 'Swing 54',  offsets: [0,10,0,10, 0,10,0,10, 0,10,0,10, 0,10,0,10] },
+            { name: 'Laid Back', offsets: [8,8,8,8, 8,8,8,8, 8,8,8,8, 8,8,8,8] },
+            { name: 'Pushed',    offsets: [-6,-6,-6,-6, -6,-6,-6,-6, -6,-6,-6,-6, -6,-6,-6,-6] },
+            { name: 'Humanoid',  offsets: [0,12,-4,8, 2,14,-2,6, -4,10,4,16, -2,8,0,12] },
+            { name: 'MPC',       offsets: [0,16,0,12, 0,16,0,12, 0,16,0,12, 0,16,0,12] },
+            { name: 'Trap',      offsets: [0,0,8,0, 0,0,8,0, 0,0,8,0, 0,0,8,0] }
+        ];
+        let currentGrooveIdx = 0;
 
         // Row Labels
         const rowNoteNames = [
@@ -852,6 +939,9 @@
         const autoMutateLabels = ['2▸', '4▸', '8▸', '16▸'];
         let autoMutateBarCounter = 0;
 
+        // Fullscreen State
+        let isFullscreen = false;
+
         // --- Data Structures [pattern][row][col] ---
         let patterns = Array(NUM_PATTERNS).fill().map(() => Array(ROWS).fill().map(() => Array(COLS).fill(0)));
         let euclideanCounts = Array(NUM_PATTERNS).fill().map(() => Array(ROWS).fill(0));
@@ -896,6 +986,20 @@
         
         const timerWorker = new Worker(URL.createObjectURL(workerBlob));
         timerWorker.onmessage = function(e) { if (e.data === 'tick') scheduler(); };
+
+        // --- Haptic Feedback Helper ---
+        function hapticFeedback(type) {
+            if (!navigator.vibrate) return;
+            switch(type) {
+                case 'tap':        navigator.vibrate(12); break;
+                case 'erase':      navigator.vibrate([8, 20, 8]); break;
+                case 'longpress':  navigator.vibrate(35); break;
+                case 'paint':      navigator.vibrate(8); break;
+                case 'rowbtn':     navigator.vibrate(15); break;
+                case 'transport':  navigator.vibrate([10, 30, 10]); break;
+                case 'mutate':     navigator.vibrate([5,10,5,10,5]); break;
+            }
+        }
 
         // --- Theme & Hue Helpers ---
         function getRowHue(row) {
@@ -1064,6 +1168,7 @@
                     opacity: 0.5;
                     user-select: none;
                     line-height: 1;
+                    display: ${row < activeRows ? '' : 'none'};
                 `;
                 label.innerText = rowNoteNames[row];
                 container.appendChild(label);
@@ -1198,7 +1303,7 @@
             `;
 
             const patRow = document.createElement('div');
-            patRow.style.cssText = 'display:flex; gap:3px;';
+            patRow.style.cssText = 'display:flex; gap:3px; flex-wrap:wrap; width: 39px; justify-content: center;';
             for (let p = 0; p < NUM_PATTERNS; p++) {
                 const pb = document.createElement('button');
                 pb.innerText = p + 1;
@@ -1210,7 +1315,7 @@
                     border: 1px solid transparent;
                     cursor: pointer;
                     transition: all 0.15s;
-                    background: ${step.pattern === p ? 'rgba(6,182,212,0.4)'  : 'rgba(63,63,70,0.4)'};
+                    background: ${step.pattern === p ? 'rgba(var(--accent),0.4)'  : 'rgba(63,63,70,0.4)'};
                     color: ${step.pattern === p ? '#67e8f9' : '#71717a'};
                 `;
                 pb.addEventListener('click', () => {
@@ -1293,8 +1398,8 @@
             if (isSongMode && isPlaying) {
                 const cards = list.querySelectorAll('.song-step-card');
                 if (cards[songStepIndex]) {
-                    cards[songStepIndex].style.borderColor = 'rgba(6,182,212,0.6)';
-                    cards[songStepIndex].style.boxShadow = '0 0 10px rgba(6,182,212,0.2)';
+                    cards[songStepIndex].style.borderColor = 'rgba(var(--accent),0.6)';
+                    cards[songStepIndex].style.boxShadow = '0 0 10px rgba(var(--accent),0.2)';
                 }
             }
         }
@@ -1693,12 +1798,14 @@
                 
                 if (probability > 0) {
                     if (probability === 100 || (Math.random() * 100 < probability)) {
-                        // Humanize timing
+                        const grooveOffsetMs = GROOVES[currentGrooveIdx].offsets[gStep % 16];
+                        const grooveOffsetSec = grooveOffsetMs / 1000;
+                        const groovedTime = Math.max(time, time + grooveOffsetSec);
+
                         const maxJitterSec = 0.030; // 30ms max
                         const jitter = humanizeAmount * maxJitterSec * (Math.random() * 2 - 1);
-                        const humanizedTime = Math.max(time, time + jitter);
+                        const humanizedTime = Math.max(groovedTime, groovedTime + jitter);
 
-                        // Humanize velocity (passed as probability modifier)
                         const velVariance = humanizeAmount * 0.2; // ±20%
                         const humanizedProb = Math.max(1, Math.min(100, 
                             probability * (1 + velVariance * (Math.random() * 2 - 1))
@@ -1979,11 +2086,6 @@
             return Math.max(0, Math.min(127, Math.round(69 + 12 * Math.log2(freq / 440))));
         }
 
-        function getSwingOffset(stepIndex, swingValue, ticksPerStep) {
-            const swingTicks = Math.round((swingValue / 100) * ticksPerStep * (2.0 / 3.0));
-            return (stepIndex % 2 === 0) ? swingTicks : -swingTicks;
-        }
-
         function patternToEvents(patternIndex, rowIndex, startTick, ppq, swingValue) {
             const ticksPerBeat = ppq;
             const ticksPerStep = ticksPerBeat / 4;
@@ -2010,10 +2112,6 @@
                 finalFreq = finalFreq * Math.pow(2, transposeShift / 12);
             }
 
-            // Note: Arpeggiator logic is intentionally excluded from the MIDI 
-            // file export, as arp state relies on active playback evaluation 
-            // of triggered steps. MIDI exports the base configured grid.
-
             const midiNote     = freqToMidi(finalFreq);
             const decayTicks   = Math.round(decays[decayIdx] * ticksPerBeat);
             const midiChannel  = resolveChannel(patternIndex, rowIndex);
@@ -2023,8 +2121,14 @@
                 if (probability === 0) continue;
 
                 const velocity  = probabilityToVelocity(probability);
-                const swing     = getSwingOffset(col, swingValue, ticksPerStep);
-                const noteTick  = startTick + col * ticksPerStep + swing;
+                
+                // Ensure proper swing logic export based on GROOVES array
+                const grooveOffsetMs = GROOVES[currentGrooveIdx].offsets[col % 16];
+                // Conversion from milliseconds offset to ticks (approximate based on BPM)
+                const msPerTick = (60000 / bpm) / PPQ;
+                const grooveTicks = Math.round(grooveOffsetMs / msPerTick);
+                
+                const noteTick  = startTick + col * ticksPerStep + grooveTicks;
 
                 events.push({
                     tick:     Math.max(0, noteTick),
@@ -2045,9 +2149,9 @@
             if (mode === 0) {
                 patternSequence = [visuallyActivePattern];
             } else if (mode === 1) {
-                patternSequence = [0, 1, 2, 3];
+                patternSequence = [0, 1, 2, 3, 4, 5, 6, 7];
             } else {
-                patternSequence = [0, 1, 2, 3];
+                patternSequence = [0, 1, 2, 3, 4, 5, 6, 7];
             }
 
             const numTracks = ROWS + 1;
@@ -2142,7 +2246,6 @@
         const presetDotElements = document.querySelectorAll('.preset-dot');
         const savePresetBtn = document.getElementById('savePresetBtn');
         const loadPresetBtn = document.getElementById('loadPresetBtn');
-        const deletePresetBtn = document.getElementById('deletePresetBtn');
 
         const resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
@@ -2405,6 +2508,7 @@
                     rowWaveforms[visuallyActivePattern][row] = (rowWaveforms[visuallyActivePattern][row] + 1) % 9;
                     updateRowControls();
                 });
+                wBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
                 gridEl.appendChild(wBtn);
                 waveBtnElements[row] = wBtn;
 
@@ -2418,6 +2522,7 @@
                     rowDecays[visuallyActivePattern][row] = (rowDecays[visuallyActivePattern][row] + 1) % 5;
                     updateRowControls();
                 });
+                dBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
                 gridEl.appendChild(dBtn);
                 decayBtnElements[row] = dBtn;
 
@@ -2431,6 +2536,7 @@
                     rowOctaves[visuallyActivePattern][row] = (rowOctaves[visuallyActivePattern][row] + 1) % 5;
                     updateRowControls();
                 });
+                oBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
                 gridEl.appendChild(oBtn);
                 octaveBtnElements[row] = oBtn;
 
@@ -2458,6 +2564,7 @@
                     updateRowControls();
                     renderGridRow(row);
                 });
+                lenBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
                 gridEl.appendChild(lenBtn);
                 lenBtnElements[row] = lenBtn;
 
@@ -2481,6 +2588,7 @@
                     updateRowControls();
                     renderGridRow(row);
                 });
+                eucBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
                 gridEl.appendChild(eucBtn);
                 eucBtnElements[row] = eucBtn;
 
@@ -2495,6 +2603,7 @@
                     rowMidiChannels[visuallyActivePattern][row] = current >= 15 ? -1 : current + 1;
                     updateRowControls();
                 });
+                mBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
                 gridEl.appendChild(mBtn);
                 midiBtnElements[row] = mBtn;
 
@@ -2524,6 +2633,7 @@
                     }
                     updateMuteSoloButtons();
                 });
+                msBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
                 gridEl.appendChild(msBtn);
                 muteSoloBtnElements[row] = msBtn;
 
@@ -2537,6 +2647,7 @@
                     rowSpeedMult[visuallyActivePattern][row] = (rowSpeedMult[visuallyActivePattern][row] + 1) % 4;
                     updateRowControls();
                 });
+                spBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
                 gridEl.appendChild(spBtn);
                 speedBtnElements[row] = spBtn;
 
@@ -2551,6 +2662,7 @@
                     rowArpMode[visuallyActivePattern][row] = current >= 3 ? -1 : current + 1;
                     updateRowControls();
                 });
+                arpBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
                 gridEl.appendChild(arpBtn);
                 arpBtnElements[row] = arpBtn;
 
@@ -2563,6 +2675,7 @@
                     rowProbLocked[row] = !rowProbLocked[row];
                     updateProbLockButtons();
                 });
+                lockBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
                 gridEl.appendChild(lockBtn);
                 lockBtnElements[row] = lockBtn;
 
@@ -2644,7 +2757,7 @@
                                 applyProbabilityCycle(row, col);
                                 if (pianoRollVisible) schedulePianoRollDraw();
                             }
-                            if (navigator.vibrate) navigator.vibrate(30);
+                            hapticFeedback('longpress');
                         }, 420);
                     }, { passive: true });
 
@@ -2672,6 +2785,7 @@
                         if (dist > 8 && !touchDidDrag && !touchDidLongPress) {
                             touchDidDrag = true;
                             initAudio();
+                            hapticFeedback('paint');
 
                             const firstVal = patterns[visuallyActivePattern][row][col];
                             if (firstVal === 100) {
@@ -2725,6 +2839,7 @@
                             touchStartPos = null;
                             touchDidDrag = false;
                             touchDidLongPress = false;
+                            hapticFeedback('tap');
                             e.preventDefault();
                             return;
                         }
@@ -2732,11 +2847,14 @@
                         if (!touchDidDrag && !touchDidLongPress && col < rowLengths[visuallyActivePattern][row]) {
                             initAudio();
                             const currentVal = patterns[visuallyActivePattern][row][col];
-                            patterns[visuallyActivePattern][row][col] = (currentVal === 100) ? 0 : 100;
+                            const newVal = (currentVal === 100) ? 0 : 100;
+                            patterns[visuallyActivePattern][row][col] = newVal;
                             euclideanCounts[visuallyActivePattern][row] = 0;
                             updateRowControls();
                             updateCellVisual(row, col, cellElements[row][col]);
                             if (pianoRollVisible) schedulePianoRollDraw();
+                            if (newVal === 100) hapticFeedback('tap');
+                            else hapticFeedback('erase');
                         }
 
                         touchPaintMode = null;
@@ -3015,12 +3133,6 @@
             savePresetBtn.disabled = true;
             loadPresetBtn.disabled = true;
             deletePresetBtn.disabled = true;
-            savePresetBtn.title = "Storage not available";
-            loadPresetBtn.title = "Storage not available";
-            deletePresetBtn.title = "Storage not available";
-            savePresetBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            loadPresetBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            deletePresetBtn.classList.add('opacity-50', 'cursor-not-allowed');
         }
 
         savePresetBtn.addEventListener('click', () => {
@@ -3044,7 +3156,8 @@
                 globalScaleIdx: globalScaleIdx,
                 globalRootIdx: globalRootIdx,
                 currentPattern: visuallyActivePattern,
-                currentThemeIdx: currentThemeIdx
+                currentThemeIdx: currentThemeIdx,
+                grooveIdx: currentGrooveIdx
             };
             
             try {
@@ -3137,6 +3250,9 @@
                 document.getElementById('humanizeSlider').value = hum;
                 document.getElementById('humanizeDisplay').innerText = hum;
                 humanizeAmount = hum / 100;
+
+                currentGrooveIdx = preset.grooveIdx ?? 0;
+                document.getElementById('grooveBtn').innerText = GROOVES[currentGrooveIdx].name;
                 
                 globalScaleIdx = preset.globalScaleIdx;
                 globalRootIdx = preset.globalRootIdx;
@@ -3348,6 +3464,7 @@
 
         document.getElementById('playBtn').addEventListener('click', () => {
             initAudio();
+            hapticFeedback('transport');
             if (audioCtx.state === 'suspended') audioCtx.resume();
             if (isPlaying) return;
             isPlaying = true;
@@ -3383,6 +3500,7 @@
         });
 
         document.getElementById('stopBtn').addEventListener('click', () => {
+            hapticFeedback('transport');
             isPlaying = false;
             timerWorker.postMessage('stop');
             
@@ -3482,6 +3600,7 @@
 
         document.getElementById('mutateBtn').addEventListener('click', () => {
             initAudio();
+            hapticFeedback('mutate');
             mutatePattern();
 
             const btn = document.getElementById('mutateBtn');
@@ -3534,6 +3653,11 @@
             if (pianoRollVisible) drawPianoRoll();
         });
 
+        document.getElementById('grooveBtn').addEventListener('click', () => {
+            currentGrooveIdx = (currentGrooveIdx + 1) % GROOVES.length;
+            document.getElementById('grooveBtn').innerText = GROOVES[currentGrooveIdx].name;
+        });
+
         document.getElementById('velSlider').addEventListener('input', (e) => {
             if (velPopupRow < 0) return;
             const val = parseInt(e.target.value);
@@ -3563,6 +3687,67 @@
                 updateRowControls();
                 if (pianoRollVisible) schedulePianoRollDraw();
             });
+        });
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    if (isPlaying) {
+                        document.getElementById('stopBtn').click();
+                    } else {
+                        document.getElementById('playBtn').click();
+                    }
+                    break;
+
+                case 'Digit1': case 'Digit2': case 'Digit3': case 'Digit4':
+                case 'Digit5': case 'Digit6': case 'Digit7': case 'Digit8':
+                    const slot = parseInt(e.code.replace('Digit','')) - 1;
+                    const patBtn = document.querySelector(`.pat-btn[data-slot="${slot}"]`);
+                    if (patBtn) patBtn.click();
+                    break;
+
+                case 'KeyM':
+                    document.getElementById('mutateBtn').click();
+                    break;
+
+                case 'KeyR':
+                    document.getElementById('randomBtn').click();
+                    break;
+
+                case 'Backspace':
+                    if (e.shiftKey) document.getElementById('clearBtn').click();
+                    break;
+
+                case 'KeyF':
+                    document.getElementById('fullscreenBtn').click();
+                    break;
+            }
+        });
+
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        fullscreenBtn.addEventListener('click', () => {
+            isFullscreen = !isFullscreen;
+            document.body.classList.toggle('fullscreen-mode', isFullscreen);
+            fullscreenBtn.innerText = isFullscreen ? '✕' : '⛶';
+            fullscreenBtn.title = isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)';
+            if (isFullscreen && document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else if (!isFullscreen && document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && isFullscreen) {
+                isFullscreen = false;
+                document.body.classList.remove('fullscreen-mode');
+                fullscreenBtn.innerText = '⛶';
+                fullscreenBtn.title = 'Fullscreen (F)';
+            }
         });
 
         // Close on outside click
