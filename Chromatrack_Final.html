@@ -96,7 +96,7 @@
 
         .grid-container {
             display: grid;
-            grid-template-columns: repeat(15, clamp(20px, 2.2vw, 28px)) repeat(16, minmax(0, 1fr));
+            grid-template-columns: repeat(16, clamp(20px, 2.2vw, 28px)) repeat(16, minmax(0, 1fr));
             gap: clamp(3px, 0.5vw, 6px);
             padding: clamp(10px, 1.5vw, 20px);
             background: var(--panel-bg);
@@ -309,54 +309,45 @@
                 border-radius: 12px;
             }
 
-            /* Stack transport vertically */
             .control-panel > div:first-child {
                 flex-direction: column !important;
                 align-items: flex-start !important;
                 gap: 12px !important;
             }
 
-            /* Make sliders full-width */
             input[type="range"] {
                 width: 100% !important;
                 max-width: 100%;
             }
 
-            /* Pattern buttons wrap */
             .pat-btn {
                 width: 32px !important;
                 height: 32px !important;
             }
 
-            /* Tighten up the grid cells on small screens */
             .grid-container {
                 gap: 3px;
                 padding: 8px;
             }
 
-            /* Oscilloscope shorter on mobile */
             #oscilloscope {
                 height: 48px !important;
             }
 
-            /* Keyboard shortcut legend hidden on mobile (use touch) */
             details {
                 display: none;
             }
 
-            /* Transport buttons full width row */
             #playBtn, #stopBtn {
                 flex: 1;
             }
         }
 
         @media (max-width: 600px) and (orientation: portrait) {
-            /* Reduce font sizes slightly */
             .row-btn {
                 font-size: 0.55rem !important;
             }
             
-            /* Ensure horizontal scroll works on grid */
             .sequencer-wrapper {
                 overflow-x: scroll !important;
                 -webkit-overflow-scrolling: touch;
@@ -634,6 +625,10 @@
                 
                 <button id="exportBtn" class="px-3 h-8 rounded text-xs font-bold uppercase transition-all bg-cyan-800/40 text-cyan-300 hover:bg-cyan-700/50 border border-cyan-700/40">Export</button>
                 <button id="exportModeBtn" class="px-3 h-8 rounded text-xs font-bold uppercase transition-all bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-transparent">Current ▸</button>
+                
+                <div class="w-px h-6 bg-zinc-700 mx-1"></div>
+
+                <button id="shareBtn" class="px-3 h-8 rounded text-xs font-bold uppercase transition-all bg-cyan-800/40 text-cyan-300 hover:bg-cyan-700/50 border border-cyan-700/40">Share</button>
             </div>
         </div>
     </div>
@@ -707,6 +702,21 @@
             justify-content: space-around;
             padding: 20px 0;
         "></div>
+        <div id="zoomIndicator" style="
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.7);
+            color: #e4e4e7;
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 6px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 50;
+        ">1.0×</div>
         <div class="w-full max-w-5xl sequencer-wrapper" id="seqWrapper">
             <div class="grid-container" id="grid">
                 <div class="col-bg" id="playheadCol"></div>
@@ -1061,6 +1071,21 @@
         let rowArpPositions = Array(ROWS).fill(0);
         const arpIntervals = [0, 4, 7, 12];
 
+        // Chord Settings
+        const CHORD_TYPES = [
+            { name: '·',    intervals: [0] },                    // Off (monophonic)
+            { name: 'maj',  intervals: [0, 4, 7] },              // Major triad
+            { name: 'min',  intervals: [0, 3, 7] },              // Minor triad
+            { name: 'dom7', intervals: [0, 4, 7, 10] },          // Dominant 7th
+            { name: 'maj7', intervals: [0, 4, 7, 11] },          // Major 7th
+            { name: 'min7', intervals: [0, 3, 7, 10] },          // Minor 7th
+            { name: 'dim',  intervals: [0, 3, 6] },              // Diminished
+            { name: 'aug',  intervals: [0, 4, 8] },              // Augmented
+            { name: 'sus4', intervals: [0, 5, 7] },              // Sus4
+            { name: 'add9', intervals: [0, 4, 7, 14] },          // Add9
+        ];
+        let rowChordType = Array(ROWS).fill(0); // index into CHORD_TYPES, 0 = off
+
         const defaultWaves = [0, 1, 0, 1, 0, 3, 1, 0, 1, 0, 1, 3, 1, 0, 1, 3]; 
         let rowWaveforms = Array(NUM_PATTERNS).fill().map(() => [...defaultWaves]);
         let rowDecays = Array(NUM_PATTERNS).fill().map(() => Array(ROWS).fill(2));  // Index 2 -> Medium
@@ -1074,6 +1099,13 @@
         let isCopyMode = false;
 
         const visualQueue = [];
+
+        // Grid Zoom State
+        let gridZoom = 1.0;          // 0.5 – 2.0
+        let pinchStartDist = null;
+        let pinchStartZoom = 1.0;
+        const GRID_ZOOM_MIN = 0.5;
+        const GRID_ZOOM_MAX = 2.5;
         
         const workerBlob = new Blob([`
             let timerID = null;
@@ -1191,6 +1223,7 @@
             if (muteSoloBtnElements[row]) muteSoloBtnElements[row].style.setProperty('--row-color', color);
             if (speedBtnElements[row]) speedBtnElements[row].style.setProperty('--row-color', color);
             if (arpBtnElements[row]) arpBtnElements[row].style.setProperty('--row-color', color);
+            if (chordBtnElements[row]) chordBtnElements[row].style.setProperty('--row-color', color);
             if (lockBtnElements[row]) lockBtnElements[row].style.setProperty('--row-color', color);
             if (reverbBtnElements[row]) reverbBtnElements[row].style.setProperty('--row-color', color);
             if (delayBtnElements[row]) delayBtnElements[row].style.setProperty('--row-color', color);
@@ -1701,6 +1734,124 @@
             velPopupCol = -1;
         }
 
+        function updateChordButtons() {
+            for (let row = 0; row < ROWS; row++) {
+                if (!chordBtnElements[row]) continue;
+                const ct = rowChordType[row];
+                const btn = chordBtnElements[row];
+                btn.innerText = CHORD_TYPES[ct].name;
+                btn.className = 'row-btn w-full h-full' + (ct > 0 ? ' euc-active' : '');
+            }
+        }
+
+        function serializeState() {
+            const state = {
+                v: 2, 
+                patterns: patterns,
+                rowLengths: rowLengths,
+                euclideanCounts: euclideanCounts,
+                rowWaveforms: rowWaveforms,
+                rowDecays: rowDecays,
+                rowOctaves: rowOctaves,
+                rowSpeedMult: rowSpeedMult,
+                rowArpMode: rowArpMode,
+                rowChordType: rowChordType,
+                patternTranspose: patternTranspose,
+                rowCustomColors: rowCustomColors,
+                rowFilterCutoff: rowFilterCutoff,
+                rowFilterRes: rowFilterRes,
+                rowReverbSend: rowReverbSend,
+                rowDelaySend: rowDelaySend,
+                bpm: bpm,
+                swing: swing,
+                globalScaleIdx: globalScaleIdx,
+                globalRootIdx: globalRootIdx,
+                currentPattern: visuallyActivePattern,
+                currentThemeIdx: currentThemeIdx,
+                grooveIdx: currentGrooveIdx,
+            };
+            try {
+                const json = JSON.stringify(state);
+                const b64 = btoa(unescape(encodeURIComponent(json)));
+                return b64;
+            } catch(e) {
+                return null;
+            }
+        }
+
+        function deserializeState(b64) {
+            try {
+                const json = decodeURIComponent(escape(atob(b64)));
+                return JSON.parse(json);
+            } catch(e) {
+                return null;
+            }
+        }
+
+        function applySharedState(state) {
+            if (!state || state.v !== 2) return false;
+
+            patterns         = state.patterns         ?? patterns;
+            rowLengths       = state.rowLengths       ?? rowLengths;
+            euclideanCounts  = state.euclideanCounts  ?? euclideanCounts;
+            rowWaveforms     = state.rowWaveforms     ?? rowWaveforms;
+            rowDecays        = state.rowDecays        ?? rowDecays;
+            rowOctaves       = state.rowOctaves       ?? rowOctaves;
+            rowSpeedMult     = state.rowSpeedMult     ?? rowSpeedMult;
+            rowArpMode       = state.rowArpMode       ?? rowArpMode;
+            rowChordType     = state.rowChordType     ?? Array(ROWS).fill(0);
+            patternTranspose = state.patternTranspose ?? Array(NUM_PATTERNS).fill(0);
+            rowCustomColors  = state.rowCustomColors  ?? Array(ROWS).fill(null);
+            rowFilterCutoff  = state.rowFilterCutoff  ?? Array(ROWS).fill(8);
+            rowFilterRes     = state.rowFilterRes     ?? Array(ROWS).fill(0);
+            rowReverbSend    = state.rowReverbSend    ?? Array(ROWS).fill(0);
+            rowDelaySend     = state.rowDelaySend     ?? Array(ROWS).fill(0);
+            bpm              = state.bpm              ?? 120;
+            swing            = state.swing            ?? 0;
+            globalScaleIdx   = state.globalScaleIdx   ?? 0;
+            globalRootIdx    = state.globalRootIdx    ?? 0;
+            currentGrooveIdx = state.grooveIdx        ?? 0;
+
+            document.getElementById('bpmSlider').value = bpm;
+            document.getElementById('bpmDisplay').innerText = bpm;
+            document.getElementById('swingSlider').value = swing;
+            document.getElementById('swingDisplay').innerText = swing;
+            document.getElementById('grooveBtn').innerText = GROOVES[currentGrooveIdx].name;
+            scaleBtn.innerText = scaleNames[globalScaleIdx];
+            rootBtn.innerText = rootNames[globalRootIdx];
+
+            if (globalScaleIdx === 0) {
+                rootBtn.classList.add('opacity-50', 'pointer-events-none');
+                rootBtn.classList.remove('text-cyan-400');
+                scaleBtn.classList.remove('text-cyan-400', 'border-cyan-500/50');
+            } else {
+                rootBtn.classList.remove('opacity-50', 'pointer-events-none');
+                rootBtn.classList.add('text-cyan-400');
+                scaleBtn.classList.add('text-cyan-400', 'border-cyan-500/50');
+            }
+            updateScaleMap();
+
+            if (state.currentThemeIdx !== undefined) applyTheme(state.currentThemeIdx);
+            else recolorRows();
+
+            currentPattern = state.currentPattern ?? 0;
+            queuedPattern = currentPattern;
+            visuallyActivePattern = currentPattern;
+
+            rowCounters.fill(0);
+            renderGrid();
+            updateRowControls();
+            updateChordButtons();
+            updateFxButtons();
+            updateFilterButtons();
+            updatePatternButtons();
+            updateTransposeUI();
+            recolorRows();
+            applyGridSize();
+
+            return true;
+        }
+
         // --- Web MIDI API ---
         function initMidi() {
             if (navigator.requestMIDIAccess) {
@@ -2128,20 +2279,25 @@
                 finalFreq = finalFreq * Math.pow(2, semitones / 12);
                 rowArpPositions[row]++;
             }
-            
+
             const noteGain = audioCtx.createGain();
             noteGain.gain.setValueAtTime(0, time);
             
-            let maxVol = 0.3;
-            if (typeStr === 'square') maxVol = 0.08;
-            else if (typeStr === 'sawtooth') maxVol = 0.12;
-            else if (typeStr === 'noise') maxVol = 1.0; 
-            else if (typeStr === 'fm')     maxVol = 0.20;
-            else if (typeStr === 'pulse')  maxVol = 0.10;
-            else if (typeStr === 'detune') maxVol = 0.15;
-            else if (typeStr === 'chord')  maxVol = 0.18;
+            let maxVolBase = 0.3;
+            if (typeStr === 'square') maxVolBase = 0.08;
+            else if (typeStr === 'sawtooth') maxVolBase = 0.12;
+            else if (typeStr === 'noise') maxVolBase = 1.0; 
+            else if (typeStr === 'fm')     maxVolBase = 0.20;
+            else if (typeStr === 'pulse')  maxVolBase = 0.10;
+            else if (typeStr === 'detune') maxVolBase = 0.15;
+            else if (typeStr === 'chord')  maxVolBase = 0.18;
 
-            if (row >= 11) maxVol *= 1.5;
+            if (row >= 11) maxVolBase *= 1.5;
+
+            const chordIntervals = CHORD_TYPES[rowChordType[row]].intervals;
+            const chordGainScale = 1 / Math.sqrt(chordIntervals.length);
+            
+            const maxVol = maxVolBase * chordGainScale;
             
             noteGain.gain.linearRampToValueAtTime(maxVol, time + 0.015);
             noteGain.gain.exponentialRampToValueAtTime(0.001, time + decayTime);
@@ -2152,106 +2308,8 @@
             filterNode.Q.value = FILTER_RES[rowFilterRes[row]];
             filterNode.connect(noteGain);
             
-            if (typeStr === 'noise') {
-                const noiseSrc = audioCtx.createBufferSource();
-                noiseSrc.buffer = noiseBuffer;
-                noiseSrc.loop = true;
-                
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.value = finalFreq; 
-                filter.Q.value = 2.0; 
-                
-                noiseSrc.connect(filter);
-                filter.connect(filterNode);
-                
-                noiseSrc.start(time);
-                noiseSrc.stop(time + decayTime + 0.05);
-            } else if (typeStr === 'fm') {
-                const carrier = audioCtx.createOscillator();
-                const modulator = audioCtx.createOscillator();
-                const modGain = audioCtx.createGain();
-
-                carrier.type = 'sine';
-                carrier.frequency.value = finalFreq;
-
-                modulator.type = 'sine';
-                modulator.frequency.value = finalFreq * 2.0; 
-                modGain.gain.value = finalFreq * 1.5;        
-
-                modulator.connect(modGain);
-                modGain.connect(carrier.frequency);
-                carrier.connect(filterNode);
-
-                modulator.start(time);
-                modulator.stop(time + decayTime + 0.05);
-                carrier.start(time);
-                carrier.stop(time + decayTime + 0.05);
-
-            } else if (typeStr === 'pulse') {
-                const osc1 = audioCtx.createOscillator();
-                const osc2 = audioCtx.createOscillator();
-                const inv  = audioCtx.createGain();
-
-                osc1.type = 'sawtooth';
-                osc2.type = 'sawtooth';
-                osc1.frequency.value = finalFreq;
-                osc2.frequency.value = finalFreq;
-                inv.gain.value = -1;
-
-                osc2.detune.value = 50; 
-
-                osc1.connect(filterNode);
-                osc2.connect(inv);
-                inv.connect(filterNode);
-
-                osc1.start(time); osc1.stop(time + decayTime + 0.05);
-                osc2.start(time); osc2.stop(time + decayTime + 0.05);
-
-            } else if (typeStr === 'detune') {
-                const detunes = [-12, 0, 12]; 
-                const oscGain = audioCtx.createGain();
-                oscGain.gain.value = 0.4;
-                oscGain.connect(filterNode);
-
-                detunes.forEach(det => {
-                    const o = audioCtx.createOscillator();
-                    o.type = 'sawtooth';
-                    o.frequency.value = finalFreq;
-                    o.detune.value = det;
-                    o.connect(oscGain);
-                    o.start(time);
-                    o.stop(time + decayTime + 0.05);
-                });
-
-            } else if (typeStr === 'chord') {
-                const intervals = [0, 4, 7]; 
-                const oscGain = audioCtx.createGain();
-                oscGain.gain.value = 0.35;
-                oscGain.connect(filterNode);
-
-                intervals.forEach(semi => {
-                    const o = audioCtx.createOscillator();
-                    o.type = 'triangle';
-                    o.frequency.value = finalFreq * Math.pow(2, semi / 12);
-                    o.connect(oscGain);
-                    o.start(time);
-                    o.stop(time + decayTime + 0.05);
-                });
-
-            } else {
-                const osc = audioCtx.createOscillator();
-                osc.type = typeStr;
-                osc.frequency.value = finalFreq; 
-                
-                osc.connect(filterNode);
-                osc.start(time);
-                osc.stop(time + decayTime + 0.05);
-            }
-
             noteGain.connect(masterGain);
 
-            // FX Sends
             if (fxBusGain && rowReverbSend[row] > 0) {
                 const sendGain = audioCtx.createGain();
                 sendGain.gain.value = rowReverbSend[row];
@@ -2264,6 +2322,107 @@
                 noteGain.connect(sendGain);
                 sendGain.connect(fxBusGain);
             }
+
+            chordIntervals.forEach((semitones, chordIdx) => {
+                const chordFreq = finalFreq * Math.pow(2, semitones / 12);
+                
+                if (typeStr === 'noise') {
+                    const noiseSrc = audioCtx.createBufferSource();
+                    noiseSrc.buffer = noiseBuffer;
+                    noiseSrc.loop = true;
+                    
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.value = chordFreq; 
+                    filter.Q.value = 2.0; 
+                    
+                    noiseSrc.connect(filter);
+                    filter.connect(filterNode);
+                    
+                    noiseSrc.start(time);
+                    noiseSrc.stop(time + decayTime + 0.05);
+                } else if (typeStr === 'fm') {
+                    const carrier = audioCtx.createOscillator();
+                    const modulator = audioCtx.createOscillator();
+                    const modGain = audioCtx.createGain();
+
+                    carrier.type = 'sine';
+                    carrier.frequency.value = chordFreq;
+
+                    modulator.type = 'sine';
+                    modulator.frequency.value = chordFreq * 2.0; 
+                    modGain.gain.value = chordFreq * 1.5;        
+
+                    modulator.connect(modGain);
+                    modGain.connect(carrier.frequency);
+                    carrier.connect(filterNode);
+
+                    modulator.start(time);
+                    modulator.stop(time + decayTime + 0.05);
+                    carrier.start(time);
+                    carrier.stop(time + decayTime + 0.05);
+
+                } else if (typeStr === 'pulse') {
+                    const osc1 = audioCtx.createOscillator();
+                    const osc2 = audioCtx.createOscillator();
+                    const inv  = audioCtx.createGain();
+
+                    osc1.type = 'sawtooth';
+                    osc2.type = 'sawtooth';
+                    osc1.frequency.value = chordFreq;
+                    osc2.frequency.value = chordFreq;
+                    inv.gain.value = -1;
+
+                    osc2.detune.value = 50; 
+
+                    osc1.connect(filterNode);
+                    osc2.connect(inv);
+                    inv.connect(filterNode);
+
+                    osc1.start(time); osc1.stop(time + decayTime + 0.05);
+                    osc2.start(time); osc2.stop(time + decayTime + 0.05);
+
+                } else if (typeStr === 'detune') {
+                    const detunes = [-12, 0, 12]; 
+                    const oscGain = audioCtx.createGain();
+                    oscGain.gain.value = 0.4;
+                    oscGain.connect(filterNode);
+
+                    detunes.forEach(det => {
+                        const o = audioCtx.createOscillator();
+                        o.type = 'sawtooth';
+                        o.frequency.value = chordFreq;
+                        o.detune.value = det;
+                        o.connect(oscGain);
+                        o.start(time);
+                        o.stop(time + decayTime + 0.05);
+                    });
+
+                } else if (typeStr === 'chord') {
+                    const intervals = [0, 4, 7]; 
+                    const oscGain = audioCtx.createGain();
+                    oscGain.gain.value = 0.35;
+                    oscGain.connect(filterNode);
+
+                    intervals.forEach(semi => {
+                        const o = audioCtx.createOscillator();
+                        o.type = 'triangle';
+                        o.frequency.value = chordFreq * Math.pow(2, semi / 12);
+                        o.connect(oscGain);
+                        o.start(time);
+                        o.stop(time + decayTime + 0.05);
+                    });
+
+                } else {
+                    const osc = audioCtx.createOscillator();
+                    osc.type = typeStr;
+                    osc.frequency.value = chordFreq; 
+                    
+                    osc.connect(filterNode);
+                    osc.start(time);
+                    osc.stop(time + decayTime + 0.05);
+                }
+            });
 
             // --- MIDI OUT ROUTING ---
             if (activeMidiOutput) {
@@ -2491,6 +2650,114 @@
             setTimeout(() => btn.classList.remove('ring-2', 'ring-cyan-400'), 600);
         }
 
+        function serializeState() {
+            const state = {
+                v: 2, 
+                patterns: patterns,
+                rowLengths: rowLengths,
+                euclideanCounts: euclideanCounts,
+                rowWaveforms: rowWaveforms,
+                rowDecays: rowDecays,
+                rowOctaves: rowOctaves,
+                rowSpeedMult: rowSpeedMult,
+                rowArpMode: rowArpMode,
+                rowChordType: rowChordType,
+                patternTranspose: patternTranspose,
+                rowCustomColors: rowCustomColors,
+                rowFilterCutoff: rowFilterCutoff,
+                rowFilterRes: rowFilterRes,
+                rowReverbSend: rowReverbSend,
+                rowDelaySend: rowDelaySend,
+                bpm: bpm,
+                swing: swing,
+                globalScaleIdx: globalScaleIdx,
+                globalRootIdx: globalRootIdx,
+                currentPattern: visuallyActivePattern,
+                currentThemeIdx: currentThemeIdx,
+                grooveIdx: currentGrooveIdx,
+            };
+            try {
+                const json = JSON.stringify(state);
+                const b64 = btoa(unescape(encodeURIComponent(json)));
+                return b64;
+            } catch(e) {
+                return null;
+            }
+        }
+
+        function deserializeState(b64) {
+            try {
+                const json = decodeURIComponent(escape(atob(b64)));
+                return JSON.parse(json);
+            } catch(e) {
+                return null;
+            }
+        }
+
+        function applySharedState(state) {
+            if (!state || state.v !== 2) return false;
+
+            patterns         = state.patterns         ?? patterns;
+            rowLengths       = state.rowLengths       ?? rowLengths;
+            euclideanCounts  = state.euclideanCounts  ?? euclideanCounts;
+            rowWaveforms     = state.rowWaveforms     ?? rowWaveforms;
+            rowDecays        = state.rowDecays        ?? rowDecays;
+            rowOctaves       = state.rowOctaves       ?? rowOctaves;
+            rowSpeedMult     = state.rowSpeedMult     ?? rowSpeedMult;
+            rowArpMode       = state.rowArpMode       ?? rowArpMode;
+            rowChordType     = state.rowChordType     ?? Array(ROWS).fill(0);
+            patternTranspose = state.patternTranspose ?? Array(NUM_PATTERNS).fill(0);
+            rowCustomColors  = state.rowCustomColors  ?? Array(ROWS).fill(null);
+            rowFilterCutoff  = state.rowFilterCutoff  ?? Array(ROWS).fill(8);
+            rowFilterRes     = state.rowFilterRes     ?? Array(ROWS).fill(0);
+            rowReverbSend    = state.rowReverbSend    ?? Array(ROWS).fill(0);
+            rowDelaySend     = state.rowDelaySend     ?? Array(ROWS).fill(0);
+            bpm              = state.bpm              ?? 120;
+            swing            = state.swing            ?? 0;
+            globalScaleIdx   = state.globalScaleIdx   ?? 0;
+            globalRootIdx    = state.globalRootIdx    ?? 0;
+            currentGrooveIdx = state.grooveIdx        ?? 0;
+
+            document.getElementById('bpmSlider').value = bpm;
+            document.getElementById('bpmDisplay').innerText = bpm;
+            document.getElementById('swingSlider').value = swing;
+            document.getElementById('swingDisplay').innerText = swing;
+            document.getElementById('grooveBtn').innerText = GROOVES[currentGrooveIdx].name;
+            scaleBtn.innerText = scaleNames[globalScaleIdx];
+            rootBtn.innerText = rootNames[globalRootIdx];
+
+            if (globalScaleIdx === 0) {
+                rootBtn.classList.add('opacity-50', 'pointer-events-none');
+                rootBtn.classList.remove('text-cyan-400');
+                scaleBtn.classList.remove('text-cyan-400', 'border-cyan-500/50');
+            } else {
+                rootBtn.classList.remove('opacity-50', 'pointer-events-none');
+                rootBtn.classList.add('text-cyan-400');
+                scaleBtn.classList.add('text-cyan-400', 'border-cyan-500/50');
+            }
+            updateScaleMap();
+
+            if (state.currentThemeIdx !== undefined) applyTheme(state.currentThemeIdx);
+            else recolorRows();
+
+            currentPattern = state.currentPattern ?? 0;
+            queuedPattern = currentPattern;
+            visuallyActivePattern = currentPattern;
+
+            rowCounters.fill(0);
+            renderGrid();
+            updateRowControls();
+            updateChordButtons();
+            updateFxButtons();
+            updateFilterButtons();
+            updatePatternButtons();
+            updateTransposeUI();
+            recolorRows();
+            applyGridSize();
+
+            return true;
+        }
+
         /**
          * VISUALS & UI
          */
@@ -2508,6 +2775,7 @@
         let muteSoloBtnElements = [];
         let speedBtnElements = [];
         let arpBtnElements = [];
+        let chordBtnElements = [];
         let lockBtnElements = [];
         let reverbBtnElements = [];
         let delayBtnElements = [];
@@ -2547,6 +2815,63 @@
             if (pianoRollVisible) drawPianoRoll();
         });
         pianoRollResizeObserver.observe(pianoRollCanvas);
+
+        const seqWrapper = document.getElementById('seqWrapper');
+
+        seqWrapper.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                pinchStartDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                pinchStartZoom = gridZoom;
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        seqWrapper.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && pinchStartDist !== null) {
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const ratio = dist / pinchStartDist;
+                gridZoom = Math.min(GRID_ZOOM_MAX, Math.max(GRID_ZOOM_MIN, pinchStartZoom * ratio));
+                applyGridZoom();
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        seqWrapper.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                pinchStartDist = null;
+            }
+        }, { passive: true });
+
+        seqWrapper.addEventListener('wheel', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                gridZoom = Math.min(GRID_ZOOM_MAX, Math.max(GRID_ZOOM_MIN, gridZoom + delta));
+                applyGridZoom();
+            }
+        }, { passive: false });
+
+        let gridDoubleTapTimer = null;
+        seqWrapper.addEventListener('touchend', (e) => {
+            if (e.touches.length === 0 && e.changedTouches.length === 1) {
+                if (gridDoubleTapTimer) {
+                    clearTimeout(gridDoubleTapTimer);
+                    gridDoubleTapTimer = null;
+                    gridZoom = 1.0;
+                    applyGridZoom();
+                } else {
+                    gridDoubleTapTimer = setTimeout(() => {
+                        gridDoubleTapTimer = null;
+                    }, 300);
+                }
+            }
+        }, { passive: true });
 
         function drawOscilloscope() {
             requestAnimationFrame(drawOscilloscope);
@@ -2751,24 +3076,39 @@
             });
         }
 
-        function applyGridSize() {
-            const ctrlW = `clamp(20px, 2.2vw, 28px)`;
+        function applyGridZoom() {
+            const ctrlW = `clamp(${Math.round(20 * gridZoom)}px, ${(2.2 * gridZoom).toFixed(2)}vw, ${Math.round(28 * gridZoom)}px)`;
+            const cellMin = `${Math.round(18 * gridZoom)}px`;
             gridEl.style.gridTemplateColumns =
-                `repeat(15, ${ctrlW}) repeat(${activeCols}, minmax(0, 1fr))`;
+                `repeat(16, ${ctrlW}) repeat(${activeCols}, minmax(${cellMin}, 1fr))`;
+            gridEl.style.gap = `${Math.max(2, Math.round(4 * gridZoom))}px`;
 
+            const indicator = document.getElementById('zoomIndicator');
+            if (indicator) {
+                indicator.innerText = gridZoom.toFixed(1) + '×';
+                indicator.style.opacity = '1';
+                clearTimeout(applyGridZoom._fadeTimer);
+                applyGridZoom._fadeTimer = setTimeout(() => {
+                    indicator.style.opacity = '0';
+                }, 1200);
+            }
+        }
+
+        function applyGridSize() {
             for (let row = 0; row < ROWS; row++) {
                 const rowVisible = row < activeRows;
                 if (colorBtnElements[row]) colorBtnElements[row].style.display = rowVisible ? '' : 'none';
-                waveBtnElements[row].style.display    = rowVisible ? '' : 'none';
-                decayBtnElements[row].style.display   = rowVisible ? '' : 'none';
-                octaveBtnElements[row].style.display  = rowVisible ? '' : 'none';
-                lenBtnElements[row].style.display     = rowVisible ? '' : 'none';
-                eucBtnElements[row].style.display     = rowVisible ? '' : 'none';
-                midiBtnElements[row].style.display    = rowVisible ? '' : 'none';
-                muteSoloBtnElements[row].style.display = rowVisible ? '' : 'none';
-                speedBtnElements[row].style.display   = rowVisible ? '' : 'none';
-                arpBtnElements[row].style.display     = rowVisible ? '' : 'none';
-                lockBtnElements[row].style.display    = rowVisible ? '' : 'none';
+                if (waveBtnElements[row]) waveBtnElements[row].style.display    = rowVisible ? '' : 'none';
+                if (decayBtnElements[row]) decayBtnElements[row].style.display   = rowVisible ? '' : 'none';
+                if (octaveBtnElements[row]) octaveBtnElements[row].style.display  = rowVisible ? '' : 'none';
+                if (lenBtnElements[row]) lenBtnElements[row].style.display     = rowVisible ? '' : 'none';
+                if (eucBtnElements[row]) eucBtnElements[row].style.display     = rowVisible ? '' : 'none';
+                if (midiBtnElements[row]) midiBtnElements[row].style.display    = rowVisible ? '' : 'none';
+                if (muteSoloBtnElements[row]) muteSoloBtnElements[row].style.display = rowVisible ? '' : 'none';
+                if (speedBtnElements[row]) speedBtnElements[row].style.display   = rowVisible ? '' : 'none';
+                if (arpBtnElements[row]) arpBtnElements[row].style.display     = rowVisible ? '' : 'none';
+                if (chordBtnElements[row]) chordBtnElements[row].style.display = rowVisible ? '' : 'none';
+                if (lockBtnElements[row]) lockBtnElements[row].style.display    = rowVisible ? '' : 'none';
                 if (reverbBtnElements[row]) reverbBtnElements[row].style.display = rowVisible ? '' : 'none';
                 if (delayBtnElements[row]) delayBtnElements[row].style.display = rowVisible ? '' : 'none';
                 if (filterCutoffBtnElements[row]) filterCutoffBtnElements[row].style.display = rowVisible ? '' : 'none';
@@ -2788,6 +3128,8 @@
             for (let i = 0; i < labelEls.length; i++) {
                 if (labelEls[i]) labelEls[i].style.display = i < activeRows ? '' : 'none';
             }
+
+            applyGridZoom();
         }
 
         function buildGrid() {
@@ -3005,7 +3347,20 @@
                 gridEl.appendChild(arpBtn);
                 arpBtnElements[row] = arpBtn;
 
-                // 11. Lock Button
+                // 11. Chord Button
+                const chordBtn = document.createElement('button');
+                chordBtn.className = 'row-btn w-full h-full';
+                chordBtn.title = 'Chord voicing (click to cycle)';
+                chordBtn.style.setProperty('--row-color', color);
+                chordBtn.addEventListener('click', () => {
+                    rowChordType[row] = (rowChordType[row] + 1) % CHORD_TYPES.length;
+                    updateChordButtons();
+                });
+                chordBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
+                gridEl.appendChild(chordBtn);
+                chordBtnElements[row] = chordBtn;
+
+                // 12. Lock Button
                 const lockBtn = document.createElement('button');
                 lockBtn.className = 'row-btn w-full h-full';
                 lockBtn.title = "Lock row probability (immune to Mutate and Random)";
@@ -3018,7 +3373,7 @@
                 gridEl.appendChild(lockBtn);
                 lockBtnElements[row] = lockBtn;
 
-                // 12. Reverb Send Button
+                // 13. Reverb Send Button
                 const rvbBtn = document.createElement('button');
                 rvbBtn.className = 'row-btn w-full h-full';
                 rvbBtn.title = 'Reverb send (click to cycle: off / 25% / 50% / 75% / 100%)';
@@ -3033,7 +3388,7 @@
                 gridEl.appendChild(rvbBtn);
                 reverbBtnElements[row] = rvbBtn;
 
-                // 13. Delay Send Button
+                // 14. Delay Send Button
                 const dlyBtn = document.createElement('button');
                 dlyBtn.className = 'row-btn w-full h-full';
                 dlyBtn.title = 'Delay send (click to cycle: off / 25% / 50% / 75% / 100%)';
@@ -3048,7 +3403,7 @@
                 gridEl.appendChild(dlyBtn);
                 delayBtnElements[row] = dlyBtn;
 
-                // 14. Filter Cutoff Button
+                // 15. Filter Cutoff Button
                 const fcBtn = document.createElement('button');
                 fcBtn.className = 'row-btn w-full h-full';
                 fcBtn.title = 'Filter cutoff (click to cycle)';
@@ -3061,7 +3416,7 @@
                 gridEl.appendChild(fcBtn);
                 filterCutoffBtnElements[row] = fcBtn;
 
-                // 15. Filter Resonance Button
+                // 16. Filter Resonance Button
                 const frBtn = document.createElement('button');
                 frBtn.className = 'row-btn w-full h-full';
                 frBtn.title = 'Filter resonance (click to cycle)';
@@ -3074,7 +3429,7 @@
                 gridEl.appendChild(frBtn);
                 filterResBtnElements[row] = frBtn;
 
-                // 16. Sequencer Cells
+                // 17. Sequencer Cells
                 for (let col = 0; col < COLS; col++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
@@ -3318,6 +3673,7 @@
                 midiBtnElements[row].style.opacity    = isSilent ? '0.25' : '';
                 speedBtnElements[row].style.opacity   = isSilent ? '0.25' : '';
                 arpBtnElements[row].style.opacity     = isSilent ? '0.25' : '';
+                chordBtnElements[row].style.opacity   = isSilent ? '0.25' : '';
                 lockBtnElements[row].style.opacity    = isSilent ? '0.25' : '';
                 if (reverbBtnElements[row]) reverbBtnElements[row].style.opacity = isSilent ? '0.25' : '';
                 if (delayBtnElements[row]) delayBtnElements[row].style.opacity = isSilent ? '0.25' : '';
@@ -3380,6 +3736,16 @@
                     frBtn.innerText = FILTER_RES_LABELS[fr];
                     frBtn.className = 'row-btn w-full h-full' + (fr > 0 ? ' mod-active' : '');
                 }
+            }
+        }
+
+        function updateChordButtons() {
+            for (let row = 0; row < ROWS; row++) {
+                if (!chordBtnElements[row]) continue;
+                const ct = rowChordType[row];
+                const btn = chordBtnElements[row];
+                btn.innerText = CHORD_TYPES[ct].name;
+                btn.className = 'row-btn w-full h-full' + (ct > 0 ? ' euc-active' : '');
             }
         }
 
@@ -3587,6 +3953,7 @@
                 rowMidiChannels: JSON.parse(JSON.stringify(rowMidiChannels)),
                 rowSpeedMult: JSON.parse(JSON.stringify(rowSpeedMult)),
                 rowArpMode: JSON.parse(JSON.stringify(rowArpMode)),
+                rowChordType: JSON.parse(JSON.stringify(rowChordType)),
                 patternTranspose: [...patternTranspose],
                 songSteps: JSON.parse(JSON.stringify(songSteps)),
                 bpm: bpm,
@@ -3641,6 +4008,7 @@
                 rowFilterCutoff = preset.rowFilterCutoff ?? Array(ROWS).fill(8);
                 rowFilterRes = preset.rowFilterRes ?? Array(ROWS).fill(0);
                 rowCustomColors = preset.rowCustomColors ?? Array(ROWS).fill(null);
+                rowChordType = preset.rowChordType ?? Array(ROWS).fill(0);
 
                 for (let p = 0; p < NUM_PATTERNS; p++) {
                     while (patterns[p].length < ROWS) {
@@ -3684,6 +4052,7 @@
                 while (rowFilterCutoff.length < ROWS) rowFilterCutoff.push(8);
                 while (rowFilterRes.length < ROWS) rowFilterRes.push(0);
                 while (rowCustomColors.length < ROWS) rowCustomColors.push(null);
+                while (rowChordType.length < ROWS) rowChordType.push(0);
 
                 songSteps = preset.songSteps ?? [];
                 songStepIndex  = 0;
@@ -3747,6 +4116,7 @@
                 rowCounters.fill(0);
                 renderGrid();
                 updateRowControls();
+                updateChordButtons();
                 updateFxButtons();
                 updateFilterButtons();
                 updatePatternButtons();
@@ -3763,6 +4133,32 @@
                 localStorage.removeItem('chromatrack_preset_' + selectedPresetSlot);
                 updatePresetDots();
             } catch (e) {}
+        });
+
+        document.getElementById('shareBtn').addEventListener('click', () => {
+            const b64 = serializeState();
+            if (!b64) return;
+
+            const url = new URL(window.location.href);
+            url.searchParams.set('p', b64);
+            const shareUrl = url.toString();
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    const btn = document.getElementById('shareBtn');
+                    const orig = btn.innerText;
+                    btn.innerText = 'Copied!';
+                    btn.classList.add('ring-2', 'ring-cyan-400');
+                    setTimeout(() => {
+                        btn.innerText = orig;
+                        btn.classList.remove('ring-2', 'ring-cyan-400');
+                    }, 2000);
+                }).catch(() => {
+                    prompt('Copy this link:', shareUrl);
+                });
+            } else {
+                prompt('Copy this link:', shareUrl);
+            }
         });
 
         /**
@@ -4273,7 +4669,6 @@
 
         // Boot
         buildGrid();
-        buildRowLabels();
         buildThemeButtons();
         applyTheme(0);
         initMidi();
@@ -4287,10 +4682,21 @@
         updateProbLockButtons();
         updateRollBtn();
         updateSongModeBtn();
+        updateChordButtons();
         updateFxButtons();
         updateFilterButtons();
         renderSongSteps();
         applyGridSize();
+        
+        // Auto-load shared state from URL
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const p = params.get('p');
+            if (p) {
+                const state = deserializeState(p);
+                if (state) applySharedState(state);
+            }
+        })();
         
         document.addEventListener('contextmenu', e => {
             if (e.target.closest('.grid-container')) e.preventDefault();
