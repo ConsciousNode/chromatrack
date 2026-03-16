@@ -40,7 +40,7 @@
             padding-bottom: 1rem;
             mask-image: linear-gradient(to right, transparent, black 2%, black 98%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 2%, black 98%, transparent);
-            touch-action: pan-y;
+            touch-action: auto;
             scrollbar-width: thin;
             scrollbar-color: rgba(var(--accent), 0.4) rgba(255, 255, 255, 0.04);
         }
@@ -71,7 +71,7 @@
             width: 28px;
             height: 100%;
             z-index: 30;
-            touch-action: pan-y;
+            touch-action: none;
             cursor: ns-resize;
             background: linear-gradient(
                 to right,
@@ -89,7 +89,7 @@
             color: rgba(var(--accent), 0.25);
             letter-spacing: 0.15em;
             user-select: none;
-            pointer-events: auto;
+            pointer-events: none;
         }
         
         #scrollStrip::after {
@@ -99,13 +99,13 @@
 
         .grid-container {
             display: grid;
-            /* 10 columns for Controls, 16 for sequencer cells */
-            grid-template-columns: repeat(10, 28px) repeat(16, minmax(34px, 1fr));
-            gap: 6px;
-            padding: 20px;
+            grid-template-columns: repeat(10, clamp(20px, 2.2vw, 28px)) repeat(16, minmax(0, 1fr));
+            gap: clamp(3px, 0.5vw, 6px);
+            padding: clamp(10px, 1.5vw, 20px);
             background: var(--panel-bg);
             border-radius: 16px;
-            min-width: 1380px;
+            width: 100%;
+            box-sizing: border-box;
             border: 1px solid rgba(255, 255, 255, 0.05);
             position: relative;
         }
@@ -309,6 +309,16 @@
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" /></svg>
                     <span>Stop</span>
                 </button>
+                
+                <div class="flex flex-col items-center">
+                    <label class="text-xs font-bold text-zinc-400 mb-1 uppercase tracking-wider">Rows (<span id="rowsDisplay">16</span>)</label>
+                    <input type="range" id="rowsSlider" min="4" max="16" value="16" step="1" class="w-20">
+                </div>
+                <div class="flex flex-col items-center">
+                    <label class="text-xs font-bold text-zinc-400 mb-1 uppercase tracking-wider">Steps (<span id="stepsDisplay">16</span>)</label>
+                    <input type="range" id="stepsSlider" min="4" max="16" value="16" step="1" class="w-20">
+                </div>
+                
                 <div class="h-8 w-px bg-zinc-700 mx-2 hidden sm:block"></div>
                 
                 <button id="tapBtn" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-4 py-2.5 rounded-lg font-bold text-sm uppercase tracking-wider">
@@ -644,6 +654,9 @@
         const COLS = 16;
         const NUM_PATTERNS = 4;
         
+        let activeRows = 16;  
+        let activeCols = 16;  
+
         const THEMES = [
             {
                 name: 'Neon',
@@ -2341,6 +2354,40 @@
             });
         }
 
+        function applyGridSize() {
+            const ctrlW = `clamp(20px, 2.2vw, 28px)`;
+            gridEl.style.gridTemplateColumns =
+                `repeat(10, ${ctrlW}) repeat(${activeCols}, minmax(0, 1fr))`;
+
+            for (let row = 0; row < ROWS; row++) {
+                const rowVisible = row < activeRows;
+                waveBtnElements[row].style.display    = rowVisible ? '' : 'none';
+                decayBtnElements[row].style.display   = rowVisible ? '' : 'none';
+                octaveBtnElements[row].style.display  = rowVisible ? '' : 'none';
+                lenBtnElements[row].style.display     = rowVisible ? '' : 'none';
+                eucBtnElements[row].style.display     = rowVisible ? '' : 'none';
+                midiBtnElements[row].style.display    = rowVisible ? '' : 'none';
+                muteSoloBtnElements[row].style.display = rowVisible ? '' : 'none';
+                speedBtnElements[row].style.display   = rowVisible ? '' : 'none';
+                arpBtnElements[row].style.display     = rowVisible ? '' : 'none';
+                lockBtnElements[row].style.display    = rowVisible ? '' : 'none';
+
+                for (let col = 0; col < COLS; col++) {
+                    const cell = cellElements[row][col];
+                    if (!rowVisible) {
+                        cell.style.display = 'none';
+                    } else {
+                        cell.style.display = col < activeCols ? '' : 'none';
+                    }
+                }
+            }
+
+            const labelEls = document.getElementById('rowLabels').children;
+            for (let i = 0; i < labelEls.length; i++) {
+                if (labelEls[i]) labelEls[i].style.display = i < activeRows ? '' : 'none';
+            }
+        }
+
         function buildGrid() {
             cellElements = Array(ROWS).fill().map(() => Array(COLS));
             
@@ -3123,6 +3170,7 @@
                 updateTransposeUI();
                 renderSongSteps();
                 if (pianoRollVisible) schedulePianoRollDraw();
+                applyGridSize();
             } catch (e) {}
         });
 
@@ -3137,6 +3185,18 @@
         /**
          * CONTROLS & EVENT LISTENERS
          */
+        document.getElementById('rowsSlider').addEventListener('input', (e) => {
+            activeRows = parseInt(e.target.value);
+            document.getElementById('rowsDisplay').innerText = activeRows;
+            applyGridSize();
+        });
+
+        document.getElementById('stepsSlider').addEventListener('input', (e) => {
+            activeCols = parseInt(e.target.value);
+            document.getElementById('stepsDisplay').innerText = activeCols;
+            applyGridSize();
+        });
+
         patternBtns.forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 const index = parseInt(e.target.dataset.slot);
@@ -3551,6 +3611,7 @@
         updateRollBtn();
         updateSongModeBtn();
         renderSongSteps();
+        applyGridSize();
         
         document.addEventListener('contextmenu', e => {
             if (e.target.closest('.grid-container')) e.preventDefault();
