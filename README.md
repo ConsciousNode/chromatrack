@@ -1,8 +1,12 @@
-id: chromatrack-readme
-name: Chromatrack README.md
-type: markdown
-content: |-
-  # Chromatrack
+## Recent Updates
+
+- **Responsive layout** — grid now fills viewport width on any screen size
+- **Mobile scroll** — horizontal swipe on the grid works correctly on touch devices  
+- **Custom grid size** — Rows (4–16) and Steps (4–16) sliders in the transport bar
+
+ 
+ 
+ # Chromatrack
 
   A fully self-contained generative step sequencer built entirely with the Web Audio API. No install. No server. No dependencies. Just one HTML file.
 
