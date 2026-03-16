@@ -7,7 +7,11 @@
  
  
  # Chromatrack
-
+[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen)](https://consciousnode.github.io/chromatrack/Chromatrack_Final.html)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)]()
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)]()
+[![Web Audio API](https://img.shields.io/badge/Web%20Audio-API-orange)]()
   A fully self-contained generative step sequencer built entirely with the Web Audio API. No install. No server. No dependencies. Just one HTML file.
 
   > Open `chromatrack.html` in any modern browser and make music.
