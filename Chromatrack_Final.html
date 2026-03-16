@@ -791,6 +791,111 @@
         </div>
     </div>
 
+    <!-- Step Lock Popup -->
+    <div id="lockPopup" style="
+        display: none;
+        position: fixed;
+        z-index: 1001;
+        background: rgba(24,24,27,0.97);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 12px 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+        min-width: 200px;
+        max-width: 240px;
+        backdrop-filter: blur(12px);
+        user-select: none;
+    ">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <span style="font-size:0.65rem; font-weight:800; color:#71717a;
+                         text-transform:uppercase; letter-spacing:0.1em;">
+                Step Lock
+            </span>
+            <button id="lockPopupClose" style="
+                background:none; border:none; color:#71717a;
+                font-size:1rem; cursor:pointer; padding:0 2px; line-height:1;
+            ">×</button>
+        </div>
+
+        <!-- Transpose Lock -->
+        <div style="margin-bottom:10px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                <span style="font-size:0.6rem; font-weight:700; color:#a1a1aa; text-transform:uppercase;">
+                    Pitch
+                </span>
+                <button id="lockTransposeClear" style="
+                    font-size:0.55rem; font-weight:700; color:#71717a;
+                    background:none; border:none; cursor:pointer; padding:0;
+                    text-transform:uppercase; letter-spacing:0.05em;
+                ">Clear</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <button id="lockTransposeDown" style="
+                    width:22px; height:22px; border-radius:4px; font-size:0.8rem;
+                    font-weight:800; background:rgba(63,63,70,0.5);
+                    border:1px solid rgba(255,255,255,0.08); color:#a1a1aa;
+                    cursor:pointer; display:flex; align-items:center; justify-content:center;
+                ">−</button>
+                <span id="lockTransposeDisplay" style="
+                    flex:1; text-align:center; font-size:0.75rem;
+                    font-weight:800; color:#e4e4e7;
+                ">—</span>
+                <button id="lockTransposeUp" style="
+                    width:22px; height:22px; border-radius:4px; font-size:0.8rem;
+                    font-weight:800; background:rgba(63,63,70,0.5);
+                    border:1px solid rgba(255,255,255,0.08); color:#a1a1aa;
+                    cursor:pointer; display:flex; align-items:center; justify-content:center;
+                ">+</button>
+            </div>
+        </div>
+
+        <!-- Decay Lock -->
+        <div style="margin-bottom:10px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                <span style="font-size:0.6rem; font-weight:700; color:#a1a1aa; text-transform:uppercase;">
+                    Decay
+                </span>
+                <button id="lockDecayClear" style="
+                    font-size:0.55rem; font-weight:700; color:#71717a;
+                    background:none; border:none; cursor:pointer; padding:0;
+                    text-transform:uppercase; letter-spacing:0.05em;
+                ">Clear</button>
+            </div>
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button class="lock-decay-btn" data-idx="0" style="flex:1; min-width:28px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">P</button>
+                <button class="lock-decay-btn" data-idx="1" style="flex:1; min-width:28px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">S</button>
+                <button class="lock-decay-btn" data-idx="2" style="flex:1; min-width:28px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">M</button>
+                <button class="lock-decay-btn" data-idx="3" style="flex:1; min-width:28px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">L</button>
+                <button class="lock-decay-btn" data-idx="4" style="flex:1; min-width:28px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">∞</button>
+            </div>
+        </div>
+
+        <!-- Waveform Lock -->
+        <div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                <span style="font-size:0.6rem; font-weight:700; color:#a1a1aa; text-transform:uppercase;">
+                    Wave
+                </span>
+                <button id="lockWaveClear" style="
+                    font-size:0.55rem; font-weight:700; color:#71717a;
+                    background:none; border:none; cursor:pointer; padding:0;
+                    text-transform:uppercase; letter-spacing:0.05em;
+                ">Clear</button>
+            </div>
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button class="lock-wave-btn" data-idx="0" style="flex:1; min-width:24px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">~</button>
+                <button class="lock-wave-btn" data-idx="1" style="flex:1; min-width:24px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">^</button>
+                <button class="lock-wave-btn" data-idx="2" style="flex:1; min-width:24px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">W</button>
+                <button class="lock-wave-btn" data-idx="3" style="flex:1; min-width:24px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">Π</button>
+                <button class="lock-wave-btn" data-idx="4" style="flex:1; min-width:24px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">*</button>
+                <button class="lock-wave-btn" data-idx="5" style="flex:1; min-width:24px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">FM</button>
+                <button class="lock-wave-btn" data-idx="6" style="flex:1; min-width:24px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">Pu</button>
+                <button class="lock-wave-btn" data-idx="7" style="flex:1; min-width:24px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">De</button>
+                <button class="lock-wave-btn" data-idx="8" style="flex:1; min-width:24px; padding:3px 0; border-radius:4px; font-size:0.65rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#71717a; cursor:pointer;">Ch</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Keyboard Shortcuts -->
     <details class="w-full max-w-5xl mt-4 text-xs text-zinc-500">
         <summary class="cursor-pointer hover:text-zinc-300 transition-colors font-bold uppercase tracking-wider">
@@ -805,6 +910,7 @@
             <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">F</kbd> Fullscreen</div>
             <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">Ctrl+Z</kbd> Undo</div>
             <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">Ctrl+Shift+Z</kbd> Redo</div>
+            <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">R-Click</kbd> Step Lock</div>
         </div>
     </details>
 
@@ -1023,6 +1129,10 @@
         let velPopupRow = -1;
         let velPopupCol = -1;
 
+        // Step Lock Popup State
+        let lockPopupRow = -1;
+        let lockPopupCol = -1;
+
         // Song Mode State
         let isSongMode = false;
         let songSteps = [];
@@ -1064,6 +1174,17 @@
         const speedMultValues = [0.5, 1, 2, 4];
         const speedMultSymbols = ['½', '·', '2', '4'];
         
+        // Step Parameter Locks [pattern][row][col] = { transpose: null|int, decay: null|int, wave: null|int }
+        let stepLocks = Array(NUM_PATTERNS).fill(null).map(() =>
+            Array(ROWS).fill(null).map(() =>
+                Array(COLS).fill(null).map(() => ({
+                    transpose: null,
+                    decay: null,
+                    wave: null
+                }))
+            )
+        );
+
         // Arpeggiator Settings
         let rowArpMode = Array(NUM_PATTERNS).fill().map(() => Array(ROWS).fill(-1));
         const arpModeSymbols = ['↑', '↓', '↕', '?'];
@@ -1130,6 +1251,7 @@
                     patterns: JSON.parse(JSON.stringify(patterns)),
                     euclideanCounts: JSON.parse(JSON.stringify(euclideanCounts)),
                     rowLengths: JSON.parse(JSON.stringify(rowLengths)),
+                    stepLocks: JSON.parse(JSON.stringify(stepLocks)),
                 };
                 undoStack.push(snapshot);
                 if (undoStack.length > UNDO_LIMIT) undoStack.shift();
@@ -1141,10 +1263,18 @@
             patterns = JSON.parse(JSON.stringify(snapshot.patterns));
             euclideanCounts = JSON.parse(JSON.stringify(snapshot.euclideanCounts));
             rowLengths = JSON.parse(JSON.stringify(snapshot.rowLengths));
+            stepLocks = snapshot.stepLocks
+                ? JSON.parse(JSON.stringify(snapshot.stepLocks))
+                : Array(NUM_PATTERNS).fill(null).map(() =>
+                    Array(ROWS).fill(null).map(() =>
+                        Array(COLS).fill(null).map(() => ({ transpose: null, decay: null, wave: null }))
+                    )
+                );
             renderGrid();
             updateRowControls();
             if (pianoRollVisible) schedulePianoRollDraw();
             closeVelPopup();
+            closeLockPopup();
         }
 
         function undo() {
@@ -1153,6 +1283,7 @@
                 patterns: JSON.parse(JSON.stringify(patterns)),
                 euclideanCounts: JSON.parse(JSON.stringify(euclideanCounts)),
                 rowLengths: JSON.parse(JSON.stringify(rowLengths)),
+                stepLocks: JSON.parse(JSON.stringify(stepLocks)),
             };
             redoStack.push(current);
             const snapshot = undoStack.pop();
@@ -1165,6 +1296,7 @@
                 patterns: JSON.parse(JSON.stringify(patterns)),
                 euclideanCounts: JSON.parse(JSON.stringify(euclideanCounts)),
                 rowLengths: JSON.parse(JSON.stringify(rowLengths)),
+                stepLocks: JSON.parse(JSON.stringify(stepLocks)),
             };
             undoStack.push(current);
             const snapshot = redoStack.pop();
@@ -1734,6 +1866,58 @@
             velPopupCol = -1;
         }
 
+        function openLockPopup(row, col, anchorX, anchorY) {
+            lockPopupRow = row;
+            lockPopupCol = col;
+
+            const lock = stepLocks[visuallyActivePattern][row][col];
+            const color = getRowColor(row);
+
+            // Transpose display
+            const td = document.getElementById('lockTransposeDisplay');
+            td.innerText = lock.transpose !== null
+                ? (lock.transpose > 0 ? `+${lock.transpose}` : `${lock.transpose}`)
+                : '—';
+            td.style.color = lock.transpose !== null ? color : '#71717a';
+
+            // Decay buttons
+            document.querySelectorAll('.lock-decay-btn').forEach((btn, i) => {
+                const active = lock.decay === i;
+                btn.style.background   = active ? color : 'rgba(255,255,255,0.06)';
+                btn.style.color        = active ? '#000' : '#71717a';
+                btn.style.borderColor  = active ? color  : 'rgba(255,255,255,0.1)';
+                btn.style.boxShadow    = active ? `0 0 6px ${color}` : 'none';
+            });
+
+            // Wave buttons
+            document.querySelectorAll('.lock-wave-btn').forEach((btn, i) => {
+                const active = lock.wave === i;
+                btn.style.background   = active ? color : 'rgba(255,255,255,0.06)';
+                btn.style.color        = active ? '#000' : '#71717a';
+                btn.style.borderColor  = active ? color  : 'rgba(255,255,255,0.1)';
+                btn.style.boxShadow    = active ? `0 0 6px ${color}` : 'none';
+            });
+
+            const popup = document.getElementById('lockPopup');
+            popup.style.display = 'block';
+
+            const pw = popup.offsetWidth  || 220;
+            const ph = popup.offsetHeight || 200;
+            let x = anchorX + 8;
+            let y = anchorY - ph / 2;
+            if (x + pw > window.innerWidth  - 8) x = anchorX - pw - 8;
+            if (y < 8)                           y = 8;
+            if (y + ph > window.innerHeight - 8) y = window.innerHeight - ph - 8;
+            popup.style.left = x + 'px';
+            popup.style.top  = y + 'px';
+        }
+
+        function closeLockPopup() {
+            document.getElementById('lockPopup').style.display = 'none';
+            lockPopupRow = -1;
+            lockPopupCol = -1;
+        }
+
         function updateChordButtons() {
             for (let row = 0; row < ROWS; row++) {
                 if (!chordBtnElements[row]) continue;
@@ -1769,6 +1953,7 @@
                 currentPattern: visuallyActivePattern,
                 currentThemeIdx: currentThemeIdx,
                 grooveIdx: currentGrooveIdx,
+                stepLocks: stepLocks,
             };
             try {
                 const json = JSON.stringify(state);
@@ -1811,6 +1996,11 @@
             globalScaleIdx   = state.globalScaleIdx   ?? 0;
             globalRootIdx    = state.globalRootIdx    ?? 0;
             currentGrooveIdx = state.grooveIdx        ?? 0;
+            stepLocks        = state.stepLocks        ?? Array(NUM_PATTERNS).fill(null).map(() =>
+                Array(ROWS).fill(null).map(() =>
+                    Array(COLS).fill(null).map(() => ({ transpose: null, decay: null, wave: null }))
+                )
+            );
 
             document.getElementById('bpmSlider').value = bpm;
             document.getElementById('bpmDisplay').innerText = bpm;
@@ -2240,9 +2430,15 @@
             const waveIdx = rowWaveforms[currentPattern][row];
             const decayIdx = rowDecays[currentPattern][row];
             const octaveIdx = rowOctaves[currentPattern][row];
+
+            const col = rowCounters[row];
+            const lock = stepLocks[currentPattern]?.[row]?.[col];
+            const effectiveWaveIdx  = (lock && lock.wave !== null) ? lock.wave : waveIdx;
+            const effectiveDecayIdx = (lock && lock.decay !== null) ? lock.decay : decayIdx;
+            const effectiveTransposeLock = (lock && lock.transpose !== null) ? lock.transpose : 0;
             
-            const typeStr = waveforms[waveIdx];
-            const decayTime = decays[decayIdx];
+            const typeStr = waveforms[effectiveWaveIdx];
+            const decayTime = decays[effectiveDecayIdx];
             
             const rawFreq = scaleFrequencies[row] * Math.pow(2, octaves[octaveIdx]);
             let finalFreq = rawFreq;
@@ -2259,6 +2455,9 @@
             const transposeShift = patternTranspose[currentPattern];
             if (transposeShift !== 0) {
                 finalFreq = finalFreq * Math.pow(2, transposeShift / 12);
+            }
+            if (effectiveTransposeLock !== 0) {
+                finalFreq = finalFreq * Math.pow(2, effectiveTransposeLock / 12);
             }
 
             const arpMode = rowArpMode[currentPattern][row];
@@ -2536,32 +2735,39 @@
             const events = [];
             const len = rowLengths[patternIndex][rowIndex];
 
-            const waveIdx   = rowWaveforms[patternIndex][rowIndex];
-            const decayIdx  = rowDecays[patternIndex][rowIndex];
-            const octaveIdx = rowOctaves[patternIndex][rowIndex];
-
-            const rawFreq  = scaleFrequencies[rowIndex] * Math.pow(2, octaves[octaveIdx]);
-            let   finalFreq = rawFreq;
-
-            if (globalScaleIdx > 0) {
-                let midiFloat = 69 + 12 * Math.log2(rawFreq / 440);
-                let midiInt   = Math.max(0, Math.min(127, Math.round(midiFloat)));
-                let qMidi     = midiQuantizeMap[midiInt];
-                finalFreq     = 440 * Math.pow(2, (qMidi - 69) / 12);
-            }
-
-            const transposeShift = patternTranspose[patternIndex];
-            if (transposeShift !== 0) {
-                finalFreq = finalFreq * Math.pow(2, transposeShift / 12);
-            }
-
-            const midiNote     = freqToMidi(finalFreq);
-            const decayTicks   = Math.round(decays[decayIdx] * ticksPerBeat);
-            const midiChannel  = resolveChannel(patternIndex, rowIndex);
-
             for (let col = 0; col < len; col++) {
                 const probability = patterns[patternIndex][rowIndex][col];
                 if (probability === 0) continue;
+
+                const waveIdx   = rowWaveforms[patternIndex][rowIndex];
+                const decayIdx  = rowDecays[patternIndex][rowIndex];
+                const octaveIdx = rowOctaves[patternIndex][rowIndex];
+                
+                const lock = stepLocks[patternIndex]?.[rowIndex]?.[col];
+                const effectiveDecayIdx = (lock && lock.decay !== null) ? lock.decay : decayIdx;
+                const effectiveTransposeLock = (lock && lock.transpose !== null) ? lock.transpose : 0;
+
+                const rawFreq  = scaleFrequencies[rowIndex] * Math.pow(2, octaves[octaveIdx]);
+                let   finalFreq = rawFreq;
+
+                if (globalScaleIdx > 0) {
+                    let midiFloat = 69 + 12 * Math.log2(rawFreq / 440);
+                    let midiInt   = Math.max(0, Math.min(127, Math.round(midiFloat)));
+                    let qMidi     = midiQuantizeMap[midiInt];
+                    finalFreq     = 440 * Math.pow(2, (qMidi - 69) / 12);
+                }
+
+                const transposeShift = patternTranspose[patternIndex];
+                if (transposeShift !== 0) {
+                    finalFreq = finalFreq * Math.pow(2, transposeShift / 12);
+                }
+                if (effectiveTransposeLock !== 0) {
+                    finalFreq = finalFreq * Math.pow(2, effectiveTransposeLock / 12);
+                }
+
+                const midiNote     = freqToMidi(finalFreq);
+                const decayTicks   = Math.round(decays[effectiveDecayIdx] * ticksPerBeat);
+                const midiChannel  = resolveChannel(patternIndex, rowIndex);
 
                 const velocity  = probabilityToVelocity(probability);
                 
@@ -2648,114 +2854,6 @@
             const btn = document.getElementById('exportBtn');
             btn.classList.add('ring-2', 'ring-cyan-400');
             setTimeout(() => btn.classList.remove('ring-2', 'ring-cyan-400'), 600);
-        }
-
-        function serializeState() {
-            const state = {
-                v: 2, 
-                patterns: patterns,
-                rowLengths: rowLengths,
-                euclideanCounts: euclideanCounts,
-                rowWaveforms: rowWaveforms,
-                rowDecays: rowDecays,
-                rowOctaves: rowOctaves,
-                rowSpeedMult: rowSpeedMult,
-                rowArpMode: rowArpMode,
-                rowChordType: rowChordType,
-                patternTranspose: patternTranspose,
-                rowCustomColors: rowCustomColors,
-                rowFilterCutoff: rowFilterCutoff,
-                rowFilterRes: rowFilterRes,
-                rowReverbSend: rowReverbSend,
-                rowDelaySend: rowDelaySend,
-                bpm: bpm,
-                swing: swing,
-                globalScaleIdx: globalScaleIdx,
-                globalRootIdx: globalRootIdx,
-                currentPattern: visuallyActivePattern,
-                currentThemeIdx: currentThemeIdx,
-                grooveIdx: currentGrooveIdx,
-            };
-            try {
-                const json = JSON.stringify(state);
-                const b64 = btoa(unescape(encodeURIComponent(json)));
-                return b64;
-            } catch(e) {
-                return null;
-            }
-        }
-
-        function deserializeState(b64) {
-            try {
-                const json = decodeURIComponent(escape(atob(b64)));
-                return JSON.parse(json);
-            } catch(e) {
-                return null;
-            }
-        }
-
-        function applySharedState(state) {
-            if (!state || state.v !== 2) return false;
-
-            patterns         = state.patterns         ?? patterns;
-            rowLengths       = state.rowLengths       ?? rowLengths;
-            euclideanCounts  = state.euclideanCounts  ?? euclideanCounts;
-            rowWaveforms     = state.rowWaveforms     ?? rowWaveforms;
-            rowDecays        = state.rowDecays        ?? rowDecays;
-            rowOctaves       = state.rowOctaves       ?? rowOctaves;
-            rowSpeedMult     = state.rowSpeedMult     ?? rowSpeedMult;
-            rowArpMode       = state.rowArpMode       ?? rowArpMode;
-            rowChordType     = state.rowChordType     ?? Array(ROWS).fill(0);
-            patternTranspose = state.patternTranspose ?? Array(NUM_PATTERNS).fill(0);
-            rowCustomColors  = state.rowCustomColors  ?? Array(ROWS).fill(null);
-            rowFilterCutoff  = state.rowFilterCutoff  ?? Array(ROWS).fill(8);
-            rowFilterRes     = state.rowFilterRes     ?? Array(ROWS).fill(0);
-            rowReverbSend    = state.rowReverbSend    ?? Array(ROWS).fill(0);
-            rowDelaySend     = state.rowDelaySend     ?? Array(ROWS).fill(0);
-            bpm              = state.bpm              ?? 120;
-            swing            = state.swing            ?? 0;
-            globalScaleIdx   = state.globalScaleIdx   ?? 0;
-            globalRootIdx    = state.globalRootIdx    ?? 0;
-            currentGrooveIdx = state.grooveIdx        ?? 0;
-
-            document.getElementById('bpmSlider').value = bpm;
-            document.getElementById('bpmDisplay').innerText = bpm;
-            document.getElementById('swingSlider').value = swing;
-            document.getElementById('swingDisplay').innerText = swing;
-            document.getElementById('grooveBtn').innerText = GROOVES[currentGrooveIdx].name;
-            scaleBtn.innerText = scaleNames[globalScaleIdx];
-            rootBtn.innerText = rootNames[globalRootIdx];
-
-            if (globalScaleIdx === 0) {
-                rootBtn.classList.add('opacity-50', 'pointer-events-none');
-                rootBtn.classList.remove('text-cyan-400');
-                scaleBtn.classList.remove('text-cyan-400', 'border-cyan-500/50');
-            } else {
-                rootBtn.classList.remove('opacity-50', 'pointer-events-none');
-                rootBtn.classList.add('text-cyan-400');
-                scaleBtn.classList.add('text-cyan-400', 'border-cyan-500/50');
-            }
-            updateScaleMap();
-
-            if (state.currentThemeIdx !== undefined) applyTheme(state.currentThemeIdx);
-            else recolorRows();
-
-            currentPattern = state.currentPattern ?? 0;
-            queuedPattern = currentPattern;
-            visuallyActivePattern = currentPattern;
-
-            rowCounters.fill(0);
-            renderGrid();
-            updateRowControls();
-            updateChordButtons();
-            updateFxButtons();
-            updateFilterButtons();
-            updatePatternButtons();
-            updateTransposeUI();
-            recolorRows();
-            applyGridSize();
-
-            return true;
         }
 
         /**
@@ -3457,6 +3555,7 @@
                         euclideanCounts[visuallyActivePattern][row] = 0; 
                         updateRowControls();
                         updateCellVisual(row, col, cell);
+                        updateCellLockVisual(row, col);
                         if (pianoRollVisible) schedulePianoRollDraw();
                     });
                     
@@ -3467,7 +3566,8 @@
                         
                         const val = patterns[visuallyActivePattern][row][col];
                         if (val > 0) {
-                            openVelPopup(row, col, e.clientX, e.clientY);
+                            closeLockPopup();
+                            openLockPopup(row, col, e.clientX, e.clientY);
                         } else {
                             applyProbabilityCycle(row, col);
                             if (pianoRollVisible) schedulePianoRollDraw();
@@ -3503,7 +3603,8 @@
                             
                             const val = patterns[visuallyActivePattern][row][col];
                             if (val > 0) {
-                                openVelPopup(row, col, touchStartPos.x, touchStartPos.y);
+                                closeLockPopup();
+                                openLockPopup(row, col, touchStartPos.x, touchStartPos.y);
                             } else {
                                 applyProbabilityCycle(row, col);
                                 if (pianoRollVisible) schedulePianoRollDraw();
@@ -3550,6 +3651,7 @@
                             euclideanCounts[visuallyActivePattern][row] = 0;
                             updateRowControls();
                             updateCellVisual(row, col, cellElements[row][col]);
+                            updateCellLockVisual(row, col);
                             if (pianoRollVisible) schedulePianoRollDraw();
                             touchLastCell = { row, col };
                         }
@@ -3564,6 +3666,7 @@
                                     euclideanCounts[visuallyActivePattern][target.row] = 0;
                                     updateRowControls();
                                     updateCellVisual(target.row, target.col, target.el);
+                                    updateCellLockVisual(target.row, target.col);
                                     if (pianoRollVisible) schedulePianoRollDraw();
                                     touchLastCell = { row: target.row, col: target.col };
                                 }
@@ -3584,6 +3687,7 @@
                             patterns[visuallyActivePattern][row][recCol] = 100;
                             euclideanCounts[visuallyActivePattern][row] = 0;
                             updateCellVisual(row, recCol, cellElements[row][recCol]);
+                            updateCellLockVisual(row, recCol);
                             updateRowControls();
                             if (pianoRollVisible) schedulePianoRollDraw();
                             touchPaintMode = null;
@@ -3605,6 +3709,7 @@
                             euclideanCounts[visuallyActivePattern][row] = 0;
                             updateRowControls();
                             updateCellVisual(row, col, cellElements[row][col]);
+                            updateCellLockVisual(row, col);
                             if (pianoRollVisible) schedulePianoRollDraw();
                             if (newVal === 100) hapticFeedback('tap');
                             else hapticFeedback('erase');
@@ -3626,6 +3731,36 @@
             renderGrid();
             updateRowControls();
             updatePatternButtons();
+        }
+
+        function updateCellLockVisual(row, col) {
+            const cell = cellElements[row][col];
+            if (!cell) return;
+            const lock = stepLocks[visuallyActivePattern][row][col];
+            const hasLock = lock && (lock.transpose !== null || lock.decay !== null || lock.wave !== null);
+
+            let dot = cell.querySelector('.lock-dot');
+            if (hasLock) {
+                if (!dot) {
+                    dot = document.createElement('span');
+                    dot.className = 'lock-dot';
+                    dot.style.cssText = `
+                        position: absolute;
+                        top: 2px;
+                        right: 2px;
+                        width: 5px;
+                        height: 5px;
+                        border-radius: 50%;
+                        background: #facc15;
+                        box-shadow: 0 0 4px #facc15;
+                        pointer-events: none;
+                        z-index: 5;
+                    `;
+                    cell.appendChild(dot);
+                }
+            } else {
+                if (dot) dot.remove();
+            }
         }
 
         function updateMuteSoloButtons() {
@@ -3679,73 +3814,6 @@
                 if (delayBtnElements[row]) delayBtnElements[row].style.opacity = isSilent ? '0.25' : '';
                 if (filterCutoffBtnElements[row]) filterCutoffBtnElements[row].style.opacity = isSilent ? '0.25' : '';
                 if (filterResBtnElements[row]) filterResBtnElements[row].style.opacity = isSilent ? '0.25' : '';
-            }
-        }
-
-        function updateProbLockButtons() {
-            for (let row = 0; row < ROWS; row++) {
-                const btn = lockBtnElements[row];
-                if (rowProbLocked[row]) {
-                    btn.innerText = '🔒';
-                    btn.style.background = 'rgba(234,179,8,0.15)';
-                    btn.style.borderColor = 'rgba(234,179,8,0.4)';
-                    btn.style.color = 'rgba(234,179,8,0.9)';
-                    btn.style.boxShadow = '0 0 6px rgba(234,179,8,0.2)';
-                } else {
-                    btn.innerText = '🔓';
-                    btn.style.background = '';
-                    btn.style.borderColor = '';
-                    btn.style.color = 'rgba(113,113,122,0.4)';
-                    btn.style.boxShadow = '';
-                }
-            }
-        }
-
-        function updateFxButtons() {
-            for (let row = 0; row < ROWS; row++) {
-                const rv = rowReverbSend[row];
-                const dl = rowDelaySend[row];
-
-                if (reverbBtnElements[row]) {
-                    const rvbBtn = reverbBtnElements[row];
-                    rvbBtn.innerText = rv > 0 ? `R${Math.round(rv*100)}` : 'R·';
-                    rvbBtn.className = 'row-btn w-full h-full' + (rv > 0 ? ' euc-active' : '');
-                }
-
-                if (delayBtnElements[row]) {
-                    const dlyBtn = delayBtnElements[row];
-                    dlyBtn.innerText = dl > 0 ? `D${Math.round(dl*100)}` : 'D·';
-                    dlyBtn.className = 'row-btn w-full h-full' + (dl > 0 ? ' euc-active' : '');
-                }
-            }
-        }
-
-        function updateFilterButtons() {
-            for (let row = 0; row < ROWS; row++) {
-                const fc = rowFilterCutoff[row];
-                const fr = rowFilterRes[row];
-
-                if (filterCutoffBtnElements[row]) {
-                    const fcBtn = filterCutoffBtnElements[row];
-                    fcBtn.innerText = FILTER_CUTOFF_LABELS[fc];
-                    fcBtn.className = 'row-btn w-full h-full' + (fc < 8 ? ' mod-active' : '');
-                }
-
-                if (filterResBtnElements[row]) {
-                    const frBtn = filterResBtnElements[row];
-                    frBtn.innerText = FILTER_RES_LABELS[fr];
-                    frBtn.className = 'row-btn w-full h-full' + (fr > 0 ? ' mod-active' : '');
-                }
-            }
-        }
-
-        function updateChordButtons() {
-            for (let row = 0; row < ROWS; row++) {
-                if (!chordBtnElements[row]) continue;
-                const ct = rowChordType[row];
-                const btn = chordBtnElements[row];
-                btn.innerText = CHORD_TYPES[ct].name;
-                btn.className = 'row-btn w-full h-full' + (ct > 0 ? ' euc-active' : '');
             }
         }
 
@@ -3829,7 +3897,10 @@
         }
 
         function renderGridRow(row) {
-            for (let col = 0; col < COLS; col++) updateCellVisual(row, col, cellElements[row][col]);
+            for (let col = 0; col < COLS; col++) {
+                updateCellVisual(row, col, cellElements[row][col]);
+                updateCellLockVisual(row, col);
+            }
         }
 
         function renderGrid() {
@@ -3878,6 +3949,7 @@
                     updateRowControls();
                     updatePatternButtons();
                     closeVelPopup();
+                    closeLockPopup();
                     if (pianoRollVisible) schedulePianoRollDraw();
                 }
 
@@ -3970,7 +4042,8 @@
                 rowFilterCutoff: [...rowFilterCutoff],
                 rowFilterRes: [...rowFilterRes],
                 rowCustomColors: [...rowCustomColors],
-                delayTime: parseFloat(document.getElementById('delayTimeSelect').value)
+                delayTime: parseFloat(document.getElementById('delayTimeSelect').value),
+                stepLocks: JSON.parse(JSON.stringify(stepLocks)),
             };
             
             try {
@@ -4009,6 +4082,12 @@
                 rowFilterRes = preset.rowFilterRes ?? Array(ROWS).fill(0);
                 rowCustomColors = preset.rowCustomColors ?? Array(ROWS).fill(null);
                 rowChordType = preset.rowChordType ?? Array(ROWS).fill(0);
+                
+                stepLocks = preset.stepLocks ?? Array(NUM_PATTERNS).fill(null).map(() =>
+                    Array(ROWS).fill(null).map(() =>
+                        Array(COLS).fill(null).map(() => ({ transpose: null, decay: null, wave: null }))
+                    )
+                );
 
                 for (let p = 0; p < NUM_PATTERNS; p++) {
                     while (patterns[p].length < ROWS) {
@@ -4189,6 +4268,7 @@
                     rowMidiChannels[index] = [...rowMidiChannels[visuallyActivePattern]];
                     rowSpeedMult[index] = [...rowSpeedMult[visuallyActivePattern]];
                     rowArpMode[index] = [...rowArpMode[visuallyActivePattern]];
+                    stepLocks[index] = JSON.parse(JSON.stringify(stepLocks[visuallyActivePattern]));
                     
                     isCopyMode = false;
                     clearDiffOverlay();
@@ -4196,6 +4276,7 @@
                         renderGrid();
                         updateRowControls();
                         closeVelPopup();
+                        closeLockPopup();
                     }
                     updatePatternButtons();
                     return;
@@ -4216,6 +4297,7 @@
                     updateRowControls();
                     updatePatternButtons();
                     closeVelPopup();
+                    closeLockPopup();
                 }
             });
 
@@ -4387,6 +4469,7 @@
             
             sendAllNotesOff();
             closeVelPopup();
+            closeLockPopup();
         });
 
         document.getElementById('bpmSlider').addEventListener('input', (e) => {
@@ -4444,12 +4527,15 @@
             for (let row = 0; row < ROWS; row++) {
                 for (let col = 0; col < COLS; col++) {
                     patterns[visuallyActivePattern][row][col] = 0;
+                    stepLocks[visuallyActivePattern][row][col] = { transpose: null, decay: null, wave: null };
                     updateCellVisual(row, col, cellElements[row][col]);
+                    updateCellLockVisual(row, col);
                 }
             }
             updateRowControls();
             if (pianoRollVisible) schedulePianoRollDraw();
             closeVelPopup();
+            closeLockPopup();
         });
 
         document.getElementById('randomBtn').addEventListener('click', () => {
@@ -4536,6 +4622,7 @@
             document.getElementById('grooveBtn').innerText = GROOVES[currentGrooveIdx].name;
         });
 
+        // Vel Popup Listeners
         document.getElementById('velSlider').addEventListener('input', (e) => {
             if (velPopupRow < 0) return;
             captureUndoSnapshot();
@@ -4567,6 +4654,98 @@
                 updateRowControls();
                 if (pianoRollVisible) schedulePianoRollDraw();
             });
+        });
+
+        // Lock Popup Listeners
+        document.getElementById('lockPopupClose').addEventListener('click', closeLockPopup);
+
+        document.getElementById('lockTransposeUp').addEventListener('click', () => {
+            if (lockPopupRow < 0) return;
+            const lock = stepLocks[visuallyActivePattern][lockPopupRow][lockPopupCol];
+            lock.transpose = (lock.transpose ?? 0) + 1;
+            if (lock.transpose > 24) lock.transpose = 24;
+            openLockPopup(lockPopupRow, lockPopupCol,
+                parseFloat(document.getElementById('lockPopup').style.left),
+                parseFloat(document.getElementById('lockPopup').style.top) +
+                    document.getElementById('lockPopup').offsetHeight / 2
+            );
+            updateCellLockVisual(lockPopupRow, lockPopupCol);
+        });
+
+        document.getElementById('lockTransposeDown').addEventListener('click', () => {
+            if (lockPopupRow < 0) return;
+            const lock = stepLocks[visuallyActivePattern][lockPopupRow][lockPopupCol];
+            lock.transpose = (lock.transpose ?? 0) - 1;
+            if (lock.transpose < -24) lock.transpose = -24;
+            openLockPopup(lockPopupRow, lockPopupCol,
+                parseFloat(document.getElementById('lockPopup').style.left),
+                parseFloat(document.getElementById('lockPopup').style.top) +
+                    document.getElementById('lockPopup').offsetHeight / 2
+            );
+            updateCellLockVisual(lockPopupRow, lockPopupCol);
+        });
+
+        document.getElementById('lockTransposeClear').addEventListener('click', () => {
+            if (lockPopupRow < 0) return;
+            stepLocks[visuallyActivePattern][lockPopupRow][lockPopupCol].transpose = null;
+            openLockPopup(lockPopupRow, lockPopupCol,
+                parseFloat(document.getElementById('lockPopup').style.left),
+                parseFloat(document.getElementById('lockPopup').style.top) +
+                    document.getElementById('lockPopup').offsetHeight / 2
+            );
+            updateCellLockVisual(lockPopupRow, lockPopupCol);
+        });
+
+        document.querySelectorAll('.lock-decay-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (lockPopupRow < 0) return;
+                const idx = parseInt(btn.dataset.idx);
+                const lock = stepLocks[visuallyActivePattern][lockPopupRow][lockPopupCol];
+                lock.decay = (lock.decay === idx) ? null : idx; // toggle
+                openLockPopup(lockPopupRow, lockPopupCol,
+                    parseFloat(document.getElementById('lockPopup').style.left),
+                    parseFloat(document.getElementById('lockPopup').style.top) +
+                        document.getElementById('lockPopup').offsetHeight / 2
+                );
+                updateCellLockVisual(lockPopupRow, lockPopupCol);
+            });
+        });
+
+        document.querySelectorAll('.lock-wave-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (lockPopupRow < 0) return;
+                const idx = parseInt(btn.dataset.idx);
+                const lock = stepLocks[visuallyActivePattern][lockPopupRow][lockPopupCol];
+                lock.wave = (lock.wave === idx) ? null : idx; // toggle
+                openLockPopup(lockPopupRow, lockPopupCol,
+                    parseFloat(document.getElementById('lockPopup').style.left),
+                    parseFloat(document.getElementById('lockPopup').style.top) +
+                        document.getElementById('lockPopup').offsetHeight / 2
+                );
+                updateCellLockVisual(lockPopupRow, lockPopupCol);
+            });
+        });
+
+        document.getElementById('lockDecayClear').addEventListener('click', () => {
+            if (lockPopupRow < 0) return;
+            stepLocks[visuallyActivePattern][lockPopupRow][lockPopupCol].decay = null;
+            openLockPopup(lockPopupRow, lockPopupCol,
+                parseFloat(document.getElementById('lockPopup').style.left),
+                parseFloat(document.getElementById('lockPopup').style.top) +
+                    document.getElementById('lockPopup').offsetHeight / 2
+            );
+            updateCellLockVisual(lockPopupRow, lockPopupCol);
+        });
+
+        document.getElementById('lockWaveClear').addEventListener('click', () => {
+            if (lockPopupRow < 0) return;
+            stepLocks[visuallyActivePattern][lockPopupRow][lockPopupCol].wave = null;
+            openLockPopup(lockPopupRow, lockPopupCol,
+                parseFloat(document.getElementById('lockPopup').style.left),
+                parseFloat(document.getElementById('lockPopup').style.top) +
+                    document.getElementById('lockPopup').offsetHeight / 2
+            );
+            updateCellLockVisual(lockPopupRow, lockPopupCol);
         });
 
         // Keyboard Shortcuts
@@ -4644,6 +4823,10 @@
             if (popup.style.display !== 'none' && !popup.contains(e.target)) {
                 closeVelPopup();
             }
+            const lockPopup = document.getElementById('lockPopup');
+            if (lockPopup && lockPopup.style.display !== 'none' && !lockPopup.contains(e.target)) {
+                closeLockPopup();
+            }
         });
 
         // Global Touch Safety Net
@@ -4665,6 +4848,10 @@
             if (popup.style.display !== 'none' && !popup.contains(e.target)) {
                 closeVelPopup();
             }
+            const lockPopup = document.getElementById('lockPopup');
+            if (lockPopup && lockPopup.style.display !== 'none' && !lockPopup.contains(e.target)) {
+                closeLockPopup();
+            }
         }, { passive: true });
 
         // Boot
@@ -4684,23 +4871,3 @@
         updateSongModeBtn();
         updateChordButtons();
         updateFxButtons();
-        updateFilterButtons();
-        renderSongSteps();
-        applyGridSize();
-        
-        // Auto-load shared state from URL
-        (function() {
-            const params = new URLSearchParams(window.location.search);
-            const p = params.get('p');
-            if (p) {
-                const state = deserializeState(p);
-                if (state) applySharedState(state);
-            }
-        })();
-        
-        document.addEventListener('contextmenu', e => {
-            if (e.target.closest('.grid-container')) e.preventDefault();
-        });
-    </script>
-</body>
-</html>
