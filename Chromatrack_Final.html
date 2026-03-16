@@ -21,11 +21,9 @@
             margin: 0;
             user-select: none;
             overflow-x: hidden;
-            /* Prevent pull-to-refresh on mobile */
             overscroll-behavior-y: none;
         }
 
-        /* Glassmorphism Panel */
         .control-panel {
             background: rgba(24, 24, 27, 0.7);
             backdrop-filter: blur(12px);
@@ -33,9 +31,8 @@
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
 
-        /* Sequencer Grid Setup */
         .sequencer-wrapper {
-            overflow-x: auto;
+            overflow-x: hidden;
             overflow-y: hidden;
             padding-bottom: 1rem;
             mask-image: linear-gradient(to right, transparent, black 2%, black 98%, transparent);
@@ -99,7 +96,7 @@
 
         .grid-container {
             display: grid;
-            grid-template-columns: repeat(10, clamp(20px, 2.2vw, 28px)) repeat(16, minmax(0, 1fr));
+            grid-template-columns: repeat(15, clamp(20px, 2.2vw, 28px)) repeat(16, minmax(0, 1fr));
             gap: clamp(3px, 0.5vw, 6px);
             padding: clamp(10px, 1.5vw, 20px);
             background: var(--panel-bg);
@@ -297,6 +294,74 @@
         body.fullscreen-mode details {
             display: none;
         }
+
+        /* Portrait / narrow screen layout */
+        @media (max-width: 600px) {
+            body {
+                padding: 8px;
+                justify-content: flex-start;
+                align-items: flex-start;
+            }
+
+            .control-panel {
+                padding: 12px;
+                gap: 12px;
+                border-radius: 12px;
+            }
+
+            /* Stack transport vertically */
+            .control-panel > div:first-child {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+            }
+
+            /* Make sliders full-width */
+            input[type="range"] {
+                width: 100% !important;
+                max-width: 100%;
+            }
+
+            /* Pattern buttons wrap */
+            .pat-btn {
+                width: 32px !important;
+                height: 32px !important;
+            }
+
+            /* Tighten up the grid cells on small screens */
+            .grid-container {
+                gap: 3px;
+                padding: 8px;
+            }
+
+            /* Oscilloscope shorter on mobile */
+            #oscilloscope {
+                height: 48px !important;
+            }
+
+            /* Keyboard shortcut legend hidden on mobile (use touch) */
+            details {
+                display: none;
+            }
+
+            /* Transport buttons full width row */
+            #playBtn, #stopBtn {
+                flex: 1;
+            }
+        }
+
+        @media (max-width: 600px) and (orientation: portrait) {
+            /* Reduce font sizes slightly */
+            .row-btn {
+                font-size: 0.55rem !important;
+            }
+            
+            /* Ensure horizontal scroll works on grid */
+            .sequencer-wrapper {
+                overflow-x: scroll !important;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4 lg:p-8">
@@ -368,6 +433,17 @@
                     <button id="grooveBtn" class="w-20 h-8 rounded text-xs font-bold uppercase bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-zinc-700 transition-colors">
                         Straight
                     </button>
+                </div>
+
+                <div class="flex flex-col items-center">
+                    <label class="text-xs font-bold text-zinc-400 mb-1 uppercase tracking-wider">Delay</label>
+                    <select id="delayTimeSelect" class="w-20 h-8 rounded text-xs font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">
+                        <option value="0.125">1/8</option>
+                        <option value="0.1875">3/16</option>
+                        <option value="0.25" selected>1/4</option>
+                        <option value="0.375">3/8</option>
+                        <option value="0.5">1/2</option>
+                    </select>
                 </div>
 
                 <div class="flex flex-col items-center">
@@ -717,6 +793,8 @@
             <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">R</kbd> Random</div>
             <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">Shift+⌫</kbd> Clear</div>
             <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">F</kbd> Fullscreen</div>
+            <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">Ctrl+Z</kbd> Undo</div>
+            <div><kbd class="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 font-mono">Ctrl+Shift+Z</kbd> Redo</div>
         </div>
     </details>
 
@@ -843,6 +921,30 @@
         let bpm = 120;
         let swing = 0; 
         
+        // FX State
+        let reverbNode = null;
+        let delayNode = null;
+        let delayFeedback = null;
+        let delayWetGain = null;
+        let reverbWetGain = null;
+        let fxBusGain = null;
+        let rowReverbSend = Array(ROWS).fill(0);   
+        let rowDelaySend  = Array(ROWS).fill(0);   
+
+        // Filter State
+        let rowFilterCutoff = Array(ROWS).fill(8);  
+        let rowFilterRes    = Array(ROWS).fill(0);  
+        const FILTER_CUTOFFS = [200, 400, 800, 1200, 2000, 4000, 8000, 12000, 20000];
+        const FILTER_CUTOFF_LABELS = ['200','400','800','1.2k','2k','4k','8k','12k','OFF'];
+        const FILTER_RES = [0.5, 1, 2, 4, 8, 14, 20];
+        const FILTER_RES_LABELS = ['·', 'Q1', 'Q2', 'Q4', 'Q8', 'Q14', 'Q20'];
+
+        // Undo/Redo State
+        const UNDO_LIMIT = 40;
+        let undoStack = [];
+        let redoStack = [];
+        let undoDebounceTimer = null;
+
         // Tap Tempo State
         let tapTimes = [];
         const TAP_RESET_MS = 2000;
@@ -873,6 +975,7 @@
         // Performance Mode States
         let isLiveRecord = false;
         let patternTranspose = Array(NUM_PATTERNS).fill(0);
+        let rowCustomColors = Array(ROWS).fill(null);
 
         // Touch State Variables
         let touchPaintMode = null;      
@@ -987,6 +1090,55 @@
         const timerWorker = new Worker(URL.createObjectURL(workerBlob));
         timerWorker.onmessage = function(e) { if (e.data === 'tick') scheduler(); };
 
+        // --- Undo / Redo ---
+        function captureUndoSnapshot() {
+            clearTimeout(undoDebounceTimer);
+            undoDebounceTimer = setTimeout(() => {
+                const snapshot = {
+                    patterns: JSON.parse(JSON.stringify(patterns)),
+                    euclideanCounts: JSON.parse(JSON.stringify(euclideanCounts)),
+                    rowLengths: JSON.parse(JSON.stringify(rowLengths)),
+                };
+                undoStack.push(snapshot);
+                if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+                redoStack = [];
+            }, 200);
+        }
+
+        function applyUndoSnapshot(snapshot) {
+            patterns = JSON.parse(JSON.stringify(snapshot.patterns));
+            euclideanCounts = JSON.parse(JSON.stringify(snapshot.euclideanCounts));
+            rowLengths = JSON.parse(JSON.stringify(snapshot.rowLengths));
+            renderGrid();
+            updateRowControls();
+            if (pianoRollVisible) schedulePianoRollDraw();
+            closeVelPopup();
+        }
+
+        function undo() {
+            if (undoStack.length === 0) return;
+            const current = {
+                patterns: JSON.parse(JSON.stringify(patterns)),
+                euclideanCounts: JSON.parse(JSON.stringify(euclideanCounts)),
+                rowLengths: JSON.parse(JSON.stringify(rowLengths)),
+            };
+            redoStack.push(current);
+            const snapshot = undoStack.pop();
+            applyUndoSnapshot(snapshot);
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+            const current = {
+                patterns: JSON.parse(JSON.stringify(patterns)),
+                euclideanCounts: JSON.parse(JSON.stringify(euclideanCounts)),
+                rowLengths: JSON.parse(JSON.stringify(rowLengths)),
+            };
+            undoStack.push(current);
+            const snapshot = redoStack.pop();
+            applyUndoSnapshot(snapshot);
+        }
+
         // --- Haptic Feedback Helper ---
         function hapticFeedback(type) {
             if (!navigator.vibrate) return;
@@ -1002,32 +1154,61 @@
         }
 
         // --- Theme & Hue Helpers ---
+        function hslToHex(hue) {
+            const s = 1, l = 0.6;
+            const a = s * Math.min(l, 1 - l);
+            const f = n => {
+                const k = (n + hue / 30) % 12;
+                const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+                return Math.round(255 * color).toString(16).padStart(2, '0');
+            };
+            return `#${f(0)}${f(8)}${f(4)}`;
+        }
+
         function getRowHue(row) {
             const t = THEMES[currentThemeIdx];
             return Math.floor(t.rowHueStart + (t.rowHueEnd - t.rowHueStart) * (row / (ROWS - 1)));
         }
 
-        function recolorRows() {
-            for (let row = 0; row < ROWS; row++) {
-                const hue = getRowHue(row);
-                const rowColor = `hsl(${hue}, 100%, 60%)`;
+        function getRowColor(row) {
+            if (rowCustomColors[row]) return rowCustomColors[row];
+            const hue = getRowHue(row);
+            return `hsl(${hue}, 100%, 60%)`;
+        }
 
-                waveBtnElements[row].style.setProperty('--row-color', rowColor);
-                decayBtnElements[row].style.setProperty('--row-color', rowColor);
-                octaveBtnElements[row].style.setProperty('--row-color', rowColor);
-                lenBtnElements[row].style.setProperty('--row-color', rowColor);
-                eucBtnElements[row].style.setProperty('--row-color', rowColor);
-                midiBtnElements[row].style.setProperty('--row-color', rowColor);
-                muteSoloBtnElements[row].style.setProperty('--row-color', rowColor);
-                speedBtnElements[row].style.setProperty('--row-color', rowColor);
-                arpBtnElements[row].style.setProperty('--row-color', rowColor);
-                lockBtnElements[row].style.setProperty('--row-color', rowColor);
+        function applyRowColor(row) {
+            const color = getRowColor(row);
+            if (colorBtnElements[row]) {
+                colorBtnElements[row].style.background = color;
+                colorBtnElements[row].style.setProperty('--row-color', color);
+            }
+            if (waveBtnElements[row]) waveBtnElements[row].style.setProperty('--row-color', color);
+            if (decayBtnElements[row]) decayBtnElements[row].style.setProperty('--row-color', color);
+            if (octaveBtnElements[row]) octaveBtnElements[row].style.setProperty('--row-color', color);
+            if (lenBtnElements[row]) lenBtnElements[row].style.setProperty('--row-color', color);
+            if (eucBtnElements[row]) eucBtnElements[row].style.setProperty('--row-color', color);
+            if (midiBtnElements[row]) midiBtnElements[row].style.setProperty('--row-color', color);
+            if (muteSoloBtnElements[row]) muteSoloBtnElements[row].style.setProperty('--row-color', color);
+            if (speedBtnElements[row]) speedBtnElements[row].style.setProperty('--row-color', color);
+            if (arpBtnElements[row]) arpBtnElements[row].style.setProperty('--row-color', color);
+            if (lockBtnElements[row]) lockBtnElements[row].style.setProperty('--row-color', color);
+            if (reverbBtnElements[row]) reverbBtnElements[row].style.setProperty('--row-color', color);
+            if (delayBtnElements[row]) delayBtnElements[row].style.setProperty('--row-color', color);
+            if (filterCutoffBtnElements[row]) filterCutoffBtnElements[row].style.setProperty('--row-color', color);
+            if (filterResBtnElements[row]) filterResBtnElements[row].style.setProperty('--row-color', color);
 
-                for (let col = 0; col < COLS; col++) {
-                    cellElements[row][col].style.setProperty('--row-color', rowColor);
+            for (let col = 0; col < COLS; col++) {
+                if (cellElements[row] && cellElements[row][col]) {
+                    cellElements[row][col].style.setProperty('--row-color', color);
                 }
             }
-            buildRowLabels();
+            buildRowLabels(); 
+        }
+
+        function recolorRows() {
+            for (let row = 0; row < ROWS; row++) {
+                applyRowColor(row);
+            }
             updateMuteSoloButtons();
         }
 
@@ -1156,7 +1337,7 @@
             const container = document.getElementById('rowLabels');
             container.innerHTML = '';
             for (let row = 0; row < ROWS; row++) {
-                const hue = getRowHue(row);
+                const color = getRowColor(row);
                 const label = document.createElement('div');
                 label.style.cssText = `
                     width: 28px;
@@ -1164,7 +1345,7 @@
                     font-size: 0.45rem;
                     font-weight: 800;
                     letter-spacing: 0.05em;
-                    color: hsl(${hue}, 100%, 65%);
+                    color: ${color};
                     opacity: 0.5;
                     user-select: none;
                     line-height: 1;
@@ -1219,6 +1400,7 @@
 
         function updateProbLockButtons() {
             for (let row = 0; row < ROWS; row++) {
+                if (!lockBtnElements[row]) continue;
                 const btn = lockBtnElements[row];
                 if (rowProbLocked[row]) {
                     btn.innerText = '🔒';
@@ -1232,6 +1414,44 @@
                     btn.style.borderColor = '';
                     btn.style.color = 'rgba(113,113,122,0.4)';
                     btn.style.boxShadow = '';
+                }
+            }
+        }
+
+        function updateFxButtons() {
+            for (let row = 0; row < ROWS; row++) {
+                const rv = rowReverbSend[row];
+                const dl = rowDelaySend[row];
+
+                if (reverbBtnElements[row]) {
+                    const rvbBtn = reverbBtnElements[row];
+                    rvbBtn.innerText = rv > 0 ? `R${Math.round(rv*100)}` : 'R·';
+                    rvbBtn.className = 'row-btn w-full h-full' + (rv > 0 ? ' euc-active' : '');
+                }
+
+                if (delayBtnElements[row]) {
+                    const dlyBtn = delayBtnElements[row];
+                    dlyBtn.innerText = dl > 0 ? `D${Math.round(dl*100)}` : 'D·';
+                    dlyBtn.className = 'row-btn w-full h-full' + (dl > 0 ? ' euc-active' : '');
+                }
+            }
+        }
+
+        function updateFilterButtons() {
+            for (let row = 0; row < ROWS; row++) {
+                const fc = rowFilterCutoff[row];
+                const fr = rowFilterRes[row];
+
+                if (filterCutoffBtnElements[row]) {
+                    const fcBtn = filterCutoffBtnElements[row];
+                    fcBtn.innerText = FILTER_CUTOFF_LABELS[fc];
+                    fcBtn.className = 'row-btn w-full h-full' + (fc < 8 ? ' mod-active' : '');
+                }
+
+                if (filterResBtnElements[row]) {
+                    const frBtn = filterResBtnElements[row];
+                    frBtn.innerText = FILTER_RES_LABELS[fr];
+                    frBtn.className = 'row-btn w-full h-full' + (fr > 0 ? ' mod-active' : '');
                 }
             }
         }
@@ -1459,9 +1679,9 @@
             slider.value = val;
             display.innerText = val + '%';
 
-            const hue = getRowHue(row);
-            slider.style.accentColor = `hsl(${hue}, 100%, 60%)`;
-            display.style.color = `hsl(${hue}, 100%, 70%)`;
+            const color = getRowColor(row);
+            slider.style.accentColor = color;
+            display.style.color = color;
 
             popup.style.display = 'block';
             const pw = popup.offsetWidth || 180;
@@ -1554,7 +1774,7 @@
         function sendAllNotesOff() {
             if (activeMidiOutput) {
                 for (let ch = 0; ch < 12; ch++) {
-                    activeMidiOutput.send([0xB0 | ch, 123, 0]); // CC 123 = All Notes Off
+                    activeMidiOutput.send([0xB0 | ch, 123, 0]); 
                 }
             }
         }
@@ -1601,6 +1821,43 @@
             for (let i = 0; i < bufferSize; i++) {
                 output[i] = Math.random() * 2 - 1;
             }
+
+            // FX Bus
+            fxBusGain = audioCtx.createGain();
+            fxBusGain.gain.value = 1.0;
+
+            // Reverb
+            reverbNode = audioCtx.createConvolver();
+            reverbWetGain = audioCtx.createGain();
+            reverbWetGain.gain.value = 0.0;
+            const irLength = audioCtx.sampleRate * 2.5;
+            const irBuffer = audioCtx.createBuffer(2, irLength, audioCtx.sampleRate);
+            for (let ch = 0; ch < 2; ch++) {
+                const data = irBuffer.getChannelData(ch);
+                for (let i = 0; i < irLength; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irLength, 2.5);
+                }
+            }
+            reverbNode.buffer = irBuffer;
+            fxBusGain.connect(reverbNode);
+            reverbNode.connect(reverbWetGain);
+            reverbWetGain.connect(masterGain);
+
+            // Delay
+            delayNode = audioCtx.createDelay(2.0);
+            delayFeedback = audioCtx.createGain();
+            delayWetGain = audioCtx.createGain();
+            delayWetGain.gain.value = 0.0;
+            
+            const delayTimeSelectVal = document.getElementById('delayTimeSelect') ? parseFloat(document.getElementById('delayTimeSelect').value) : 0.25;
+            delayNode.delayTime.value = (60 / bpm) * delayTimeSelectVal; 
+            
+            delayFeedback.gain.value = 0.35;
+            fxBusGain.connect(delayNode);
+            delayNode.connect(delayFeedback);
+            delayFeedback.connect(delayNode);
+            delayNode.connect(delayWetGain);
+            delayWetGain.connect(masterGain);
 
             if (!isOscilloscopeRunning) {
                 isOscilloscopeRunning = true;
@@ -1683,6 +1940,7 @@
         }
 
         function mutatePattern() {
+            captureUndoSnapshot();
             const rate = mutationRates[mutationIntensity];
             const fillBias = mutationBiasFill[mutationIntensity];
 
@@ -1887,7 +2145,12 @@
             
             noteGain.gain.linearRampToValueAtTime(maxVol, time + 0.015);
             noteGain.gain.exponentialRampToValueAtTime(0.001, time + decayTime);
-            noteGain.connect(masterGain);
+
+            const filterNode = audioCtx.createBiquadFilter();
+            filterNode.type = 'lowpass';
+            filterNode.frequency.value = FILTER_CUTOFFS[rowFilterCutoff[row]];
+            filterNode.Q.value = FILTER_RES[rowFilterRes[row]];
+            filterNode.connect(noteGain);
             
             if (typeStr === 'noise') {
                 const noiseSrc = audioCtx.createBufferSource();
@@ -1900,7 +2163,7 @@
                 filter.Q.value = 2.0; 
                 
                 noiseSrc.connect(filter);
-                filter.connect(noteGain);
+                filter.connect(filterNode);
                 
                 noiseSrc.start(time);
                 noiseSrc.stop(time + decayTime + 0.05);
@@ -1918,7 +2181,7 @@
 
                 modulator.connect(modGain);
                 modGain.connect(carrier.frequency);
-                carrier.connect(noteGain);
+                carrier.connect(filterNode);
 
                 modulator.start(time);
                 modulator.stop(time + decayTime + 0.05);
@@ -1938,9 +2201,9 @@
 
                 osc2.detune.value = 50; 
 
-                osc1.connect(noteGain);
+                osc1.connect(filterNode);
                 osc2.connect(inv);
-                inv.connect(noteGain);
+                inv.connect(filterNode);
 
                 osc1.start(time); osc1.stop(time + decayTime + 0.05);
                 osc2.start(time); osc2.stop(time + decayTime + 0.05);
@@ -1949,7 +2212,7 @@
                 const detunes = [-12, 0, 12]; 
                 const oscGain = audioCtx.createGain();
                 oscGain.gain.value = 0.4;
-                oscGain.connect(noteGain);
+                oscGain.connect(filterNode);
 
                 detunes.forEach(det => {
                     const o = audioCtx.createOscillator();
@@ -1965,7 +2228,7 @@
                 const intervals = [0, 4, 7]; 
                 const oscGain = audioCtx.createGain();
                 oscGain.gain.value = 0.35;
-                oscGain.connect(noteGain);
+                oscGain.connect(filterNode);
 
                 intervals.forEach(semi => {
                     const o = audioCtx.createOscillator();
@@ -1981,9 +2244,25 @@
                 osc.type = typeStr;
                 osc.frequency.value = finalFreq; 
                 
-                osc.connect(noteGain);
+                osc.connect(filterNode);
                 osc.start(time);
                 osc.stop(time + decayTime + 0.05);
+            }
+
+            noteGain.connect(masterGain);
+
+            // FX Sends
+            if (fxBusGain && rowReverbSend[row] > 0) {
+                const sendGain = audioCtx.createGain();
+                sendGain.gain.value = rowReverbSend[row];
+                noteGain.connect(sendGain);
+                sendGain.connect(fxBusGain);
+            }
+            if (fxBusGain && rowDelaySend[row] > 0) {
+                const sendGain = audioCtx.createGain();
+                sendGain.gain.value = rowDelaySend[row];
+                noteGain.connect(sendGain);
+                sendGain.connect(fxBusGain);
             }
 
             // --- MIDI OUT ROUTING ---
@@ -2086,6 +2365,11 @@
             return Math.max(0, Math.min(127, Math.round(69 + 12 * Math.log2(freq / 440))));
         }
 
+        function getSwingOffset(stepIndex, swingValue, ticksPerStep) {
+            const swingTicks = Math.round((swingValue / 100) * ticksPerStep * (2.0 / 3.0));
+            return (stepIndex % 2 === 0) ? swingTicks : -swingTicks;
+        }
+
         function patternToEvents(patternIndex, rowIndex, startTick, ppq, swingValue) {
             const ticksPerBeat = ppq;
             const ticksPerStep = ticksPerBeat / 4;
@@ -2122,9 +2406,7 @@
 
                 const velocity  = probabilityToVelocity(probability);
                 
-                // Ensure proper swing logic export based on GROOVES array
                 const grooveOffsetMs = GROOVES[currentGrooveIdx].offsets[col % 16];
-                // Conversion from milliseconds offset to ticks (approximate based on BPM)
                 const msPerTick = (60000 / bpm) / PPQ;
                 const grooveTicks = Math.round(grooveOffsetMs / msPerTick);
                 
@@ -2215,6 +2497,7 @@
         const gridEl = document.getElementById('grid');
         const playheadCol = document.getElementById('playheadCol');
         
+        let colorBtnElements = [];
         let cellElements = [];
         let waveBtnElements = [];
         let decayBtnElements = [];
@@ -2226,6 +2509,10 @@
         let speedBtnElements = [];
         let arpBtnElements = [];
         let lockBtnElements = [];
+        let reverbBtnElements = [];
+        let delayBtnElements = [];
+        let filterCutoffBtnElements = [];
+        let filterResBtnElements = [];
         
         const patternBtns = document.querySelectorAll('.pat-btn');
         const copyBtn = document.getElementById('copyBtn');
@@ -2246,6 +2533,7 @@
         const presetDotElements = document.querySelectorAll('.preset-dot');
         const savePresetBtn = document.getElementById('savePresetBtn');
         const loadPresetBtn = document.getElementById('loadPresetBtn');
+        const deletePresetBtn = document.getElementById('deletePresetBtn');
 
         const resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
@@ -2374,16 +2662,18 @@
             }
 
             for (let row = 0; row < ROWS; row++) {
-                const hue = getRowHue(row);
-                ctx.fillStyle = `hsla(${hue}, 100%, 65%, 0.5)`;
+                const color = getRowColor(row);
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = color;
                 ctx.font = `bold ${Math.max(8, rowH * 0.45)}px monospace`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(rowNoteNames[row], 3, row * rowH + rowH / 2);
+                ctx.globalAlpha = 1.0;
             }
 
             for (let row = 0; row < ROWS; row++) {
-                const hue = getRowHue(row);
+                const color = getRowColor(row);
                 const len = rowLengths[visuallyActivePattern][row];
 
                 for (let col = 0; col < len; col++) {
@@ -2400,22 +2690,26 @@
                                 : val === 50  ? 0.45
                                 : 0.28;
 
-                    ctx.fillStyle = `hsla(${hue}, 100%, 60%, ${alpha})`;
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = color;
                     ctx.beginPath();
                     ctx.roundRect(x, y, w, h, 3);
                     ctx.fill();
 
-                    ctx.strokeStyle = `hsla(${hue}, 100%, 75%, ${alpha * 0.6})`;
+                    ctx.globalAlpha = alpha * 0.6;
+                    ctx.strokeStyle = color;
                     ctx.lineWidth = 1;
                     ctx.stroke();
 
+                    ctx.globalAlpha = 0.9;
                     if (val < 100 && stepW > 28) {
-                        ctx.fillStyle = `hsla(${hue}, 100%, 85%, 0.9)`;
+                        ctx.fillStyle = '#ffffff';
                         ctx.font = `bold ${Math.max(7, rowH * 0.38)}px monospace`;
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         ctx.fillText(`${val}%`, x + w / 2, y + h / 2);
                     }
+                    ctx.globalAlpha = 1.0;
                 }
             }
 
@@ -2460,10 +2754,11 @@
         function applyGridSize() {
             const ctrlW = `clamp(20px, 2.2vw, 28px)`;
             gridEl.style.gridTemplateColumns =
-                `repeat(10, ${ctrlW}) repeat(${activeCols}, minmax(0, 1fr))`;
+                `repeat(15, ${ctrlW}) repeat(${activeCols}, minmax(0, 1fr))`;
 
             for (let row = 0; row < ROWS; row++) {
                 const rowVisible = row < activeRows;
+                if (colorBtnElements[row]) colorBtnElements[row].style.display = rowVisible ? '' : 'none';
                 waveBtnElements[row].style.display    = rowVisible ? '' : 'none';
                 decayBtnElements[row].style.display   = rowVisible ? '' : 'none';
                 octaveBtnElements[row].style.display  = rowVisible ? '' : 'none';
@@ -2474,6 +2769,10 @@
                 speedBtnElements[row].style.display   = rowVisible ? '' : 'none';
                 arpBtnElements[row].style.display     = rowVisible ? '' : 'none';
                 lockBtnElements[row].style.display    = rowVisible ? '' : 'none';
+                if (reverbBtnElements[row]) reverbBtnElements[row].style.display = rowVisible ? '' : 'none';
+                if (delayBtnElements[row]) delayBtnElements[row].style.display = rowVisible ? '' : 'none';
+                if (filterCutoffBtnElements[row]) filterCutoffBtnElements[row].style.display = rowVisible ? '' : 'none';
+                if (filterResBtnElements[row]) filterResBtnElements[row].style.display = rowVisible ? '' : 'none';
 
                 for (let col = 0; col < COLS; col++) {
                     const cell = cellElements[row][col];
@@ -2495,14 +2794,52 @@
             cellElements = Array(ROWS).fill().map(() => Array(COLS));
             
             for (let row = 0; row < ROWS; row++) {
-                const hue = getRowHue(row);
-                const rowColor = `hsl(${hue}, 100%, 60%)`;
+                const color = getRowColor(row);
                 
-                // 1. Waveform Button
+                // 1. Color Button
+                const colorBtn = document.createElement('button');
+                colorBtn.className = 'row-btn w-full h-full';
+                colorBtn.title = 'Row color (click to customize, right-click to reset)';
+                colorBtn.style.setProperty('--row-color', color);
+                colorBtn.style.background = color;
+                colorBtn.style.opacity = '0.7';
+                colorBtn.style.borderRadius = '6px';
+
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;';
+                colorBtn.appendChild(colorInput);
+
+                colorBtn.addEventListener('click', (e) => {
+                    if (e.target === colorInput) return;
+                    colorInput.value = rowCustomColors[row] 
+                        ? rowCustomColors[row] 
+                        : hslToHex(getRowHue(row));
+                    colorInput.click();
+                });
+
+                colorInput.addEventListener('input', (e) => {
+                    captureUndoSnapshot();
+                    rowCustomColors[row] = e.target.value;
+                    applyRowColor(row);
+                });
+
+                colorBtn.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    captureUndoSnapshot();
+                    rowCustomColors[row] = null;
+                    applyRowColor(row);
+                });
+
+                colorBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
+                gridEl.appendChild(colorBtn);
+                colorBtnElements[row] = colorBtn;
+
+                // 2. Waveform Button
                 const wBtn = document.createElement('button');
                 wBtn.className = 'row-btn w-full h-full';
                 wBtn.title = "Waveform (Sine / Triangle / Saw / Square / Noise / FM / Pulse / Detune / Chord)";
-                wBtn.style.setProperty('--row-color', rowColor);
+                wBtn.style.setProperty('--row-color', color);
                 wBtn.addEventListener('click', () => {
                     initAudio();
                     rowWaveforms[visuallyActivePattern][row] = (rowWaveforms[visuallyActivePattern][row] + 1) % 9;
@@ -2512,11 +2849,11 @@
                 gridEl.appendChild(wBtn);
                 waveBtnElements[row] = wBtn;
 
-                // 2. Decay Button
+                // 3. Decay Button
                 const dBtn = document.createElement('button');
                 dBtn.className = 'row-btn w-full h-full';
                 dBtn.title = "Decay/Length (Pluck / Short / Medium / Long / Pad)";
-                dBtn.style.setProperty('--row-color', rowColor);
+                dBtn.style.setProperty('--row-color', color);
                 dBtn.addEventListener('click', () => {
                     initAudio();
                     rowDecays[visuallyActivePattern][row] = (rowDecays[visuallyActivePattern][row] + 1) % 5;
@@ -2526,11 +2863,11 @@
                 gridEl.appendChild(dBtn);
                 decayBtnElements[row] = dBtn;
 
-                // 3. Octave Button
+                // 4. Octave Button
                 const oBtn = document.createElement('button');
                 oBtn.className = 'row-btn w-full h-full';
                 oBtn.title = "Octave Shift (-2 to +2)";
-                oBtn.style.setProperty('--row-color', rowColor);
+                oBtn.style.setProperty('--row-color', color);
                 oBtn.addEventListener('click', () => {
                     initAudio();
                     rowOctaves[visuallyActivePattern][row] = (rowOctaves[visuallyActivePattern][row] + 1) % 5;
@@ -2540,12 +2877,13 @@
                 gridEl.appendChild(oBtn);
                 octaveBtnElements[row] = oBtn;
 
-                // 4. Length Button (Polymeter)
+                // 5. Length Button (Polymeter)
                 const lenBtn = document.createElement('button');
                 lenBtn.className = 'row-btn w-full h-full';
                 lenBtn.title = "Polymetric Step Length";
-                lenBtn.style.setProperty('--row-color', rowColor);
+                lenBtn.style.setProperty('--row-color', color);
                 lenBtn.addEventListener('click', () => {
+                    captureUndoSnapshot();
                     initAudio();
                     const currentLen = rowLengths[visuallyActivePattern][row];
                     const idx = ALLOWED_LENGTHS.indexOf(currentLen);
@@ -2568,12 +2906,13 @@
                 gridEl.appendChild(lenBtn);
                 lenBtnElements[row] = lenBtn;
 
-                // 5. Euclidean Button
+                // 6. Euclidean Button
                 const eucBtn = document.createElement('button');
                 eucBtn.className = 'row-btn w-full h-full';
                 eucBtn.title = "Euclidean Generator";
-                eucBtn.style.setProperty('--row-color', rowColor);
+                eucBtn.style.setProperty('--row-color', color);
                 eucBtn.addEventListener('click', () => {
+                    captureUndoSnapshot();
                     initAudio();
                     const len = rowLengths[visuallyActivePattern][row];
                     let count = euclideanCounts[visuallyActivePattern][row];
@@ -2592,11 +2931,11 @@
                 gridEl.appendChild(eucBtn);
                 eucBtnElements[row] = eucBtn;
 
-                // 6. MIDI Channel Button
+                // 7. MIDI Channel Button
                 const mBtn = document.createElement('button');
                 mBtn.className = 'row-btn w-full h-full';
                 mBtn.title = "MIDI Channel Override (Auto = row default)";
-                mBtn.style.setProperty('--row-color', rowColor);
+                mBtn.style.setProperty('--row-color', color);
                 mBtn.addEventListener('click', () => {
                     initAudio();
                     const current = rowMidiChannels[visuallyActivePattern][row];
@@ -2607,11 +2946,11 @@
                 gridEl.appendChild(mBtn);
                 midiBtnElements[row] = mBtn;
 
-                // 7. Mute/Solo Button
+                // 8. Mute/Solo Button
                 const msBtn = document.createElement('button');
                 msBtn.className = 'row-btn w-full h-full';
                 msBtn.title = "Click: Mute | Double-click: Solo";
-                msBtn.style.setProperty('--row-color', rowColor);
+                msBtn.style.setProperty('--row-color', color);
                 msBtn.addEventListener('click', () => {
                     const now = Date.now();
                     if (now - msLastTap[row] < 350) {
@@ -2637,11 +2976,11 @@
                 gridEl.appendChild(msBtn);
                 muteSoloBtnElements[row] = msBtn;
 
-                // 8. Speed Multiplier Button
+                // 9. Speed Multiplier Button
                 const spBtn = document.createElement('button');
                 spBtn.className = 'row-btn w-full h-full';
                 spBtn.title = "Step Speed Multiplier (½× / 1× / 2× / 4×)";
-                spBtn.style.setProperty('--row-color', rowColor);
+                spBtn.style.setProperty('--row-color', color);
                 spBtn.addEventListener('click', () => {
                     initAudio();
                     rowSpeedMult[visuallyActivePattern][row] = (rowSpeedMult[visuallyActivePattern][row] + 1) % 4;
@@ -2651,11 +2990,11 @@
                 gridEl.appendChild(spBtn);
                 speedBtnElements[row] = spBtn;
 
-                // 9. Arp Button
+                // 10. Arp Button
                 const arpBtn = document.createElement('button');
                 arpBtn.className = 'row-btn w-full h-full';
                 arpBtn.title = "Arpeggiator (Off / Up / Down / Up-Down / Random)";
-                arpBtn.style.setProperty('--row-color', rowColor);
+                arpBtn.style.setProperty('--row-color', color);
                 arpBtn.addEventListener('click', () => {
                     initAudio();
                     const current = rowArpMode[visuallyActivePattern][row];
@@ -2666,11 +3005,11 @@
                 gridEl.appendChild(arpBtn);
                 arpBtnElements[row] = arpBtn;
 
-                // 10. Lock Button
+                // 11. Lock Button
                 const lockBtn = document.createElement('button');
                 lockBtn.className = 'row-btn w-full h-full';
                 lockBtn.title = "Lock row probability (immune to Mutate and Random)";
-                lockBtn.style.setProperty('--row-color', rowColor);
+                lockBtn.style.setProperty('--row-color', color);
                 lockBtn.addEventListener('click', () => {
                     rowProbLocked[row] = !rowProbLocked[row];
                     updateProbLockButtons();
@@ -2679,15 +3018,72 @@
                 gridEl.appendChild(lockBtn);
                 lockBtnElements[row] = lockBtn;
 
-                // 11. Sequencer Cells
+                // 12. Reverb Send Button
+                const rvbBtn = document.createElement('button');
+                rvbBtn.className = 'row-btn w-full h-full';
+                rvbBtn.title = 'Reverb send (click to cycle: off / 25% / 50% / 75% / 100%)';
+                rvbBtn.style.setProperty('--row-color', color);
+                rvbBtn.addEventListener('click', () => {
+                    const steps = [0, 0.25, 0.5, 0.75, 1.0];
+                    const idx = steps.indexOf(rowReverbSend[row]);
+                    rowReverbSend[row] = steps[(idx + 1) % steps.length];
+                    updateFxButtons();
+                });
+                rvbBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
+                gridEl.appendChild(rvbBtn);
+                reverbBtnElements[row] = rvbBtn;
+
+                // 13. Delay Send Button
+                const dlyBtn = document.createElement('button');
+                dlyBtn.className = 'row-btn w-full h-full';
+                dlyBtn.title = 'Delay send (click to cycle: off / 25% / 50% / 75% / 100%)';
+                dlyBtn.style.setProperty('--row-color', color);
+                dlyBtn.addEventListener('click', () => {
+                    const steps = [0, 0.25, 0.5, 0.75, 1.0];
+                    const idx = steps.indexOf(rowDelaySend[row]);
+                    rowDelaySend[row] = steps[(idx + 1) % steps.length];
+                    updateFxButtons();
+                });
+                dlyBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
+                gridEl.appendChild(dlyBtn);
+                delayBtnElements[row] = dlyBtn;
+
+                // 14. Filter Cutoff Button
+                const fcBtn = document.createElement('button');
+                fcBtn.className = 'row-btn w-full h-full';
+                fcBtn.title = 'Filter cutoff (click to cycle)';
+                fcBtn.style.setProperty('--row-color', color);
+                fcBtn.addEventListener('click', () => {
+                    rowFilterCutoff[row] = (rowFilterCutoff[row] + 1) % FILTER_CUTOFFS.length;
+                    updateFilterButtons();
+                });
+                fcBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
+                gridEl.appendChild(fcBtn);
+                filterCutoffBtnElements[row] = fcBtn;
+
+                // 15. Filter Resonance Button
+                const frBtn = document.createElement('button');
+                frBtn.className = 'row-btn w-full h-full';
+                frBtn.title = 'Filter resonance (click to cycle)';
+                frBtn.style.setProperty('--row-color', color);
+                frBtn.addEventListener('click', () => {
+                    rowFilterRes[row] = (rowFilterRes[row] + 1) % FILTER_RES.length;
+                    updateFilterButtons();
+                });
+                frBtn.addEventListener('touchstart', () => hapticFeedback('rowbtn'), {passive: true});
+                gridEl.appendChild(frBtn);
+                filterResBtnElements[row] = frBtn;
+
+                // 16. Sequencer Cells
                 for (let col = 0; col < COLS; col++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
-                    cell.style.setProperty('--row-color', rowColor);
+                    cell.style.setProperty('--row-color', color);
                     
                     // --- Desktop Mouse Handlers ---
                     cell.addEventListener('mousedown', (e) => {
                         if (e.button !== 0 || col >= rowLengths[visuallyActivePattern][row]) return;
+                        captureUndoSnapshot();
                         initAudio();
                         
                         if (isLiveRecord && isPlaying) {
@@ -2783,6 +3179,7 @@
                         }
 
                         if (dist > 8 && !touchDidDrag && !touchDidLongPress) {
+                            captureUndoSnapshot();
                             touchDidDrag = true;
                             initAudio();
                             hapticFeedback('paint');
@@ -2845,6 +3242,7 @@
                         }
 
                         if (!touchDidDrag && !touchDidLongPress && col < rowLengths[visuallyActivePattern][row]) {
+                            captureUndoSnapshot();
                             initAudio();
                             const currentVal = patterns[visuallyActivePattern][row][col];
                             const newVal = (currentVal === 100) ? 0 : 100;
@@ -2879,15 +3277,14 @@
             const anySolo = rowSoloed.some(s => s);
             for (let row = 0; row < ROWS; row++) {
                 const btn = muteSoloBtnElements[row];
-                const hue = getRowHue(row);
-                const rowColor = `hsl(${hue}, 100%, 60%)`;
+                const color = getRowColor(row);
 
                 if (rowSoloed[row]) {
                     btn.innerText = 'S';
-                    btn.style.background = rowColor;
+                    btn.style.background = color;
                     btn.style.color = '#000';
-                    btn.style.borderColor = rowColor;
-                    btn.style.boxShadow = `0 0 10px ${rowColor}`;
+                    btn.style.borderColor = color;
+                    btn.style.boxShadow = `0 0 10px ${color}`;
                 } else if (rowMuted[row]) {
                     btn.innerText = 'M';
                     btn.style.background = 'rgba(239,68,68,0.15)';
@@ -2912,6 +3309,7 @@
                 for (let col = 0; col < COLS; col++) {
                     cellElements[row][col].style.opacity = isSilent ? '0.25' : '';
                 }
+                if (colorBtnElements[row]) colorBtnElements[row].style.opacity = isSilent ? '0.25' : '0.7';
                 waveBtnElements[row].style.opacity    = isSilent ? '0.25' : '';
                 decayBtnElements[row].style.opacity   = isSilent ? '0.25' : '';
                 octaveBtnElements[row].style.opacity  = isSilent ? '0.25' : '';
@@ -2921,6 +3319,10 @@
                 speedBtnElements[row].style.opacity   = isSilent ? '0.25' : '';
                 arpBtnElements[row].style.opacity     = isSilent ? '0.25' : '';
                 lockBtnElements[row].style.opacity    = isSilent ? '0.25' : '';
+                if (reverbBtnElements[row]) reverbBtnElements[row].style.opacity = isSilent ? '0.25' : '';
+                if (delayBtnElements[row]) delayBtnElements[row].style.opacity = isSilent ? '0.25' : '';
+                if (filterCutoffBtnElements[row]) filterCutoffBtnElements[row].style.opacity = isSilent ? '0.25' : '';
+                if (filterResBtnElements[row]) filterResBtnElements[row].style.opacity = isSilent ? '0.25' : '';
             }
         }
 
@@ -2939,6 +3341,44 @@
                     btn.style.borderColor = '';
                     btn.style.color = 'rgba(113,113,122,0.4)';
                     btn.style.boxShadow = '';
+                }
+            }
+        }
+
+        function updateFxButtons() {
+            for (let row = 0; row < ROWS; row++) {
+                const rv = rowReverbSend[row];
+                const dl = rowDelaySend[row];
+
+                if (reverbBtnElements[row]) {
+                    const rvbBtn = reverbBtnElements[row];
+                    rvbBtn.innerText = rv > 0 ? `R${Math.round(rv*100)}` : 'R·';
+                    rvbBtn.className = 'row-btn w-full h-full' + (rv > 0 ? ' euc-active' : '');
+                }
+
+                if (delayBtnElements[row]) {
+                    const dlyBtn = delayBtnElements[row];
+                    dlyBtn.innerText = dl > 0 ? `D${Math.round(dl*100)}` : 'D·';
+                    dlyBtn.className = 'row-btn w-full h-full' + (dl > 0 ? ' euc-active' : '');
+                }
+            }
+        }
+
+        function updateFilterButtons() {
+            for (let row = 0; row < ROWS; row++) {
+                const fc = rowFilterCutoff[row];
+                const fr = rowFilterRes[row];
+
+                if (filterCutoffBtnElements[row]) {
+                    const fcBtn = filterCutoffBtnElements[row];
+                    fcBtn.innerText = FILTER_CUTOFF_LABELS[fc];
+                    fcBtn.className = 'row-btn w-full h-full' + (fc < 8 ? ' mod-active' : '');
+                }
+
+                if (filterResBtnElements[row]) {
+                    const frBtn = filterResBtnElements[row];
+                    frBtn.innerText = FILTER_RES_LABELS[fr];
+                    frBtn.className = 'row-btn w-full h-full' + (fr > 0 ? ' mod-active' : '');
                 }
             }
         }
@@ -3157,7 +3597,13 @@
                 globalRootIdx: globalRootIdx,
                 currentPattern: visuallyActivePattern,
                 currentThemeIdx: currentThemeIdx,
-                grooveIdx: currentGrooveIdx
+                grooveIdx: currentGrooveIdx,
+                rowReverbSend: [...rowReverbSend],
+                rowDelaySend: [...rowDelaySend],
+                rowFilterCutoff: [...rowFilterCutoff],
+                rowFilterRes: [...rowFilterRes],
+                rowCustomColors: [...rowCustomColors],
+                delayTime: parseFloat(document.getElementById('delayTimeSelect').value)
             };
             
             try {
@@ -3190,7 +3636,12 @@
                 rowArpMode = preset.rowArpMode ?? Array(NUM_PATTERNS).fill().map(() => Array(ROWS).fill(-1));
                 patternTranspose = preset.patternTranspose ?? Array(NUM_PATTERNS).fill(0);
                 
-                // Pad patterns to 16 rows if loaded from a 12-row preset
+                rowReverbSend = preset.rowReverbSend ?? Array(ROWS).fill(0);
+                rowDelaySend = preset.rowDelaySend ?? Array(ROWS).fill(0);
+                rowFilterCutoff = preset.rowFilterCutoff ?? Array(ROWS).fill(8);
+                rowFilterRes = preset.rowFilterRes ?? Array(ROWS).fill(0);
+                rowCustomColors = preset.rowCustomColors ?? Array(ROWS).fill(null);
+
                 for (let p = 0; p < NUM_PATTERNS; p++) {
                     while (patterns[p].length < ROWS) {
                         patterns[p].push(Array(COLS).fill(0));
@@ -3228,6 +3679,11 @@
                 while (rowArpPositions.length < ROWS) rowArpPositions.push(0);
                 while (rowCounters.length < ROWS) rowCounters.push(0);
                 while (rowStepAccumulators.length < ROWS) rowStepAccumulators.push(0);
+                while (rowReverbSend.length < ROWS) rowReverbSend.push(0);
+                while (rowDelaySend.length < ROWS) rowDelaySend.push(0);
+                while (rowFilterCutoff.length < ROWS) rowFilterCutoff.push(8);
+                while (rowFilterRes.length < ROWS) rowFilterRes.push(0);
+                while (rowCustomColors.length < ROWS) rowCustomColors.push(null);
 
                 songSteps = preset.songSteps ?? [];
                 songStepIndex  = 0;
@@ -3253,6 +3709,13 @@
 
                 currentGrooveIdx = preset.grooveIdx ?? 0;
                 document.getElementById('grooveBtn').innerText = GROOVES[currentGrooveIdx].name;
+
+                if (preset.delayTime !== undefined) {
+                    document.getElementById('delayTimeSelect').value = preset.delayTime;
+                    if (delayNode && audioCtx) {
+                        delayNode.delayTime.setTargetAtTime(preset.delayTime * (60 / bpm), audioCtx.currentTime, 0.01);
+                    }
+                }
                 
                 globalScaleIdx = preset.globalScaleIdx;
                 globalRootIdx = preset.globalRootIdx;
@@ -3273,6 +3736,8 @@
 
                 if (preset.currentThemeIdx !== undefined) {
                     applyTheme(preset.currentThemeIdx);
+                } else {
+                    recolorRows();
                 }
                 
                 currentPattern = preset.currentPattern;
@@ -3282,6 +3747,8 @@
                 rowCounters.fill(0);
                 renderGrid();
                 updateRowControls();
+                updateFxButtons();
+                updateFilterButtons();
                 updatePatternButtons();
                 updateTransposeUI();
                 renderSongSteps();
@@ -3529,6 +3996,10 @@
         document.getElementById('bpmSlider').addEventListener('input', (e) => {
             bpm = parseInt(e.target.value);
             document.getElementById('bpmDisplay').innerText = bpm;
+            if (delayNode && audioCtx) {
+                const delayTimeSelectVal = document.getElementById('delayTimeSelect') ? parseFloat(document.getElementById('delayTimeSelect').value) : 0.25;
+                delayNode.delayTime.setTargetAtTime(delayTimeSelectVal * (60 / bpm), audioCtx.currentTime, 0.01);
+            }
         });
 
         document.getElementById('swingSlider').addEventListener('input', (e) => {
@@ -3554,7 +4025,17 @@
             handleTapTempo();
         });
 
+        document.getElementById('delayTimeSelect').addEventListener('change', (e) => {
+            if (delayNode && audioCtx) {
+                delayNode.delayTime.setTargetAtTime(
+                    parseFloat(e.target.value) * (60 / bpm),
+                    audioCtx.currentTime, 0.01
+                );
+            }
+        });
+
         document.getElementById('clearBtn').addEventListener('click', () => {
+            captureUndoSnapshot();
             rowWaveforms[visuallyActivePattern] = [...defaultWaves];
             rowDecays[visuallyActivePattern].fill(2);
             rowOctaves[visuallyActivePattern].fill(2);
@@ -3576,6 +4057,7 @@
         });
 
         document.getElementById('randomBtn').addEventListener('click', () => {
+            captureUndoSnapshot();
             initAudio();
             for (let row = 0; row < ROWS; row++) {
                 if (rowProbLocked[row]) continue;
@@ -3660,6 +4142,7 @@
 
         document.getElementById('velSlider').addEventListener('input', (e) => {
             if (velPopupRow < 0) return;
+            captureUndoSnapshot();
             const val = parseInt(e.target.value);
             document.getElementById('velDisplay').innerText = val + '%';
             patterns[visuallyActivePattern][velPopupRow][velPopupCol] = val;
@@ -3677,6 +4160,7 @@
         document.querySelectorAll('.vel-preset-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (velPopupRow < 0) return;
+                captureUndoSnapshot();
                 const val = parseInt(btn.dataset.val);
                 document.getElementById('velSlider').value = val;
                 document.getElementById('velDisplay').innerText = val + '%';
@@ -3724,6 +4208,14 @@
 
                 case 'KeyF':
                     document.getElementById('fullscreenBtn').click();
+                    break;
+                    
+                case 'KeyZ':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        if (e.shiftKey) redo();
+                        else undo();
+                    }
                     break;
             }
         });
@@ -3795,6 +4287,8 @@
         updateProbLockButtons();
         updateRollBtn();
         updateSongModeBtn();
+        updateFxButtons();
+        updateFilterButtons();
         renderSongSteps();
         applyGridSize();
         
