@@ -15,7 +15,10 @@
   A fully self-contained generative step sequencer built entirely with the Web Audio API. No install. No server. No dependencies. Just one HTML file.
 
   > Open `chromatrack.html` in any modern browser and make music.
-
+![Chromatrack Interface](IMG_20260316_173813.jpg)
+![Chromatrack Interface Interface](IMG_20260316_173749.jpg)
+![Chromatrack Interface Interface](IMG_20260316_173722.jpg)
+![Chromatrack Interface Interface](IMG_20260316_173620.jpg)
   ---
 
   ## Quick Start
