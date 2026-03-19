@@ -10,10 +10,10 @@ A fully self-contained generative step sequencer built entirely with the Web Aud
 
 > Open `Chromatrack_Final.html` in any modern browser and make music.
 
-![Chromatrack Interface](Chromatrack (1).png)
-![Chromatrack Interface](Chromatrack (1).png)
-![Chromatrack Interface](Chromatrack (1).png)
-![Chromatrack Interface](Chromatrack (1).png)
+![Chromatrack Interface](Chromatrack_1.png)
+![Chromatrack Interface](Chromatrack_2.png)
+![Chromatrack Interface](Chromatrack_3.png)
+![Chromatrack Interface](Chromatrack_4.png)
 
 ---
 
