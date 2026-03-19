@@ -405,7 +405,7 @@
                 <button id="fullscreenBtn" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-3 py-2.5 rounded-lg font-bold text-sm" title="Fullscreen (F)">
                     ⛶
                 </button>
-                <button id="helpBtn" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-3 py-2.5 rounded-lg font-bold text-sm" title="How to use Chromatrack">?</button>
+                <button id="helpBtn" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-3 py-2.5 rounded-lg font-bold text-sm" title="How to use Chromatrack" aria-label="Open help modal">?</button>
                 <select id="langSelect" style="background:rgba(39,39,42,0.9); border:1px solid rgba(255,255,255,0.12); color:#a1a1aa; border-radius:6px; padding:4px 8px; font-size:0.7rem; font-weight:700; cursor:pointer; outline:none; appearance:none; -webkit-appearance:none;">
                     <option value="en">EN</option>
                     <option value="es">ES</option>
@@ -934,7 +934,7 @@
 
 
     <!-- Instructions Modal -->
-    <div id="instructionsModal" style="
+    <div id="instructionsModal" role="dialog" aria-modal="true" aria-labelledby="instructionsModalTitle" style="
         display:none; position:fixed; inset:0; z-index:9999;
         background:rgba(0,0,0,0.85); backdrop-filter:blur(8px);
         align-items:center; justify-content:center; padding:16px;
@@ -945,13 +945,13 @@
             max-height:85vh; overflow-y:auto; position:relative;
             box-shadow:0 8px 40px rgba(0,0,0,0.8);
         ">
-            <button id="closeInstructions" style="
+            <button id="closeInstructions" aria-label="Close help modal" style="
                 position:absolute; top:12px; right:16px;
                 background:none; border:none; color:#71717a;
                 font-size:1.4rem; cursor:pointer; line-height:1;
             ">×</button>
 
-            <h2 style="font-size:1.2rem; font-weight:800; color:#e4e4e7; margin:0 0 4px;">
+            <h2 id="instructionsModalTitle" style="font-size:1.2rem; font-weight:800; color:#e4e4e7; margin:0 0 4px;">
                 🎹 How to use Chromatrack
             </h2>
             <p style="font-size:0.75rem; color:#71717a; margin:0 0 20px;">
@@ -1034,11 +1034,11 @@
 
 
     <!-- Row Controls Popup -->
-    <div id="rowControlsPopup" style="display:none; position:fixed; z-index:1002; background:rgba(24,24,27,0.97); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0 0 12px 0; box-shadow:0 8px 32px rgba(0,0,0,0.7); width:320px; max-height:80vh; overflow-y:auto; backdrop-filter:blur(12px); user-select:none;">
+    <div id="rowControlsPopup" role="dialog" aria-modal="true" aria-labelledby="rcpTitle" style="display:none; position:fixed; z-index:1002; background:rgba(24,24,27,0.97); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0 0 12px 0; box-shadow:0 8px 32px rgba(0,0,0,0.7); width:320px; max-height:80vh; overflow-y:auto; backdrop-filter:blur(12px); user-select:none;">
         <div id="rcpAccentBar" style="height:3px; border-radius:12px 12px 0 0; margin-bottom:10px;"></div>
         <div style="display:flex; align-items:center; justify-content:space-between; padding:0 14px 8px 14px;">
             <span id="rcpTitle" style="font-size:0.65rem; font-weight:800; color:#71717a; text-transform:uppercase; letter-spacing:0.1em;">Row Controls</span>
-            <button id="rcpClose" style="background:none; border:none; color:#71717a; font-size:1rem; cursor:pointer; padding:0 2px; line-height:1;">&#215;</button>
+            <button id="rcpClose" aria-label="Close row controls" style="background:none; border:none; color:#71717a; font-size:1rem; cursor:pointer; padding:0 2px; line-height:1;">&#215;</button>
         </div>
         <div style="padding:0 14px; display:flex; flex-direction:column; gap:14px;">
             <div class="rcp-section">
@@ -1795,6 +1795,30 @@
             timerWorker.onmessage = function(e) { if (e.data === 'tick') scheduler(); };
 
             // --- Undo / Redo ---
+            function captureFullSnapshot() {
+                return {
+                    patterns: JSON.parse(JSON.stringify(patterns)),
+                    euclideanCounts: JSON.parse(JSON.stringify(euclideanCounts)),
+                    rowLengths: JSON.parse(JSON.stringify(rowLengths)),
+                    stepLocks: JSON.parse(JSON.stringify(stepLocks)),
+                    rowWaveforms: JSON.parse(JSON.stringify(rowWaveforms)),
+                    rowDecays: JSON.parse(JSON.stringify(rowDecays)),
+                    rowOctaves: JSON.parse(JSON.stringify(rowOctaves)),
+                    rowSpeedMult: JSON.parse(JSON.stringify(rowSpeedMult)),
+                    rowArpMode: JSON.parse(JSON.stringify(rowArpMode)),
+                    rowMidiChannels: JSON.parse(JSON.stringify(rowMidiChannels)),
+                    rowMuted: [...rowMuted],
+                    rowSoloed: [...rowSoloed],
+                    rowChordType: [...rowChordType],
+                    rowReverbSend: [...rowReverbSend],
+                    rowDelaySend: [...rowDelaySend],
+                    rowFilterCutoff: [...rowFilterCutoff],
+                    rowFilterRes: [...rowFilterRes],
+                    rowProbLocked: [...rowProbLocked],
+                    activePattern: visuallyActivePattern,
+                };
+            }
+
             function captureUndoSnapshot() {
                 clearTimeout(undoDebounceTimer);
                 undoDebounceTimer = setTimeout(() => {
@@ -1803,6 +1827,21 @@
                         euclideanCounts: JSON.parse(JSON.stringify(euclideanCounts)),
                         rowLengths: JSON.parse(JSON.stringify(rowLengths)),
                         stepLocks: JSON.parse(JSON.stringify(stepLocks)),
+                        rowWaveforms: JSON.parse(JSON.stringify(rowWaveforms)),
+                        rowDecays: JSON.parse(JSON.stringify(rowDecays)),
+                        rowOctaves: JSON.parse(JSON.stringify(rowOctaves)),
+                        rowSpeedMult: JSON.parse(JSON.stringify(rowSpeedMult)),
+                        rowArpMode: JSON.parse(JSON.stringify(rowArpMode)),
+                        rowMidiChannels: JSON.parse(JSON.stringify(rowMidiChannels)),
+                        rowMuted: [...rowMuted],
+                        rowSoloed: [...rowSoloed],
+                        rowChordType: [...rowChordType],
+                        rowReverbSend: [...rowReverbSend],
+                        rowDelaySend: [...rowDelaySend],
+                        rowFilterCutoff: [...rowFilterCutoff],
+                        rowFilterRes: [...rowFilterRes],
+                        rowProbLocked: [...rowProbLocked],
+                        activePattern: visuallyActivePattern,
                     };
                     undoStack.push(snapshot);
                     if (undoStack.length > UNDO_LIMIT) undoStack.shift();
@@ -1821,40 +1860,54 @@
                             Array(COLS).fill(null).map(() => ({ transpose: null, decay: null, wave: null }))
                         )
                     );
+                if (snapshot.rowWaveforms)   rowWaveforms   = JSON.parse(JSON.stringify(snapshot.rowWaveforms));
+                if (snapshot.rowDecays)      rowDecays      = JSON.parse(JSON.stringify(snapshot.rowDecays));
+                if (snapshot.rowOctaves)     rowOctaves     = JSON.parse(JSON.stringify(snapshot.rowOctaves));
+                if (snapshot.rowSpeedMult)   rowSpeedMult   = JSON.parse(JSON.stringify(snapshot.rowSpeedMult));
+                if (snapshot.rowArpMode)     rowArpMode     = JSON.parse(JSON.stringify(snapshot.rowArpMode));
+                if (snapshot.rowMidiChannels) rowMidiChannels = JSON.parse(JSON.stringify(snapshot.rowMidiChannels));
+                if (snapshot.rowMuted)       rowMuted       = [...snapshot.rowMuted];
+                if (snapshot.rowSoloed)      rowSoloed      = [...snapshot.rowSoloed];
+                if (snapshot.rowChordType)   rowChordType   = [...snapshot.rowChordType];
+                if (snapshot.rowReverbSend)  rowReverbSend  = [...snapshot.rowReverbSend];
+                if (snapshot.rowDelaySend)   rowDelaySend   = [...snapshot.rowDelaySend];
+                if (snapshot.rowFilterCutoff) rowFilterCutoff = [...snapshot.rowFilterCutoff];
+                if (snapshot.rowFilterRes)   rowFilterRes   = [...snapshot.rowFilterRes];
+                if (snapshot.rowProbLocked)  rowProbLocked  = [...snapshot.rowProbLocked];
+                if (snapshot.activePattern !== undefined) {
+                    visuallyActivePattern = snapshot.activePattern;
+                    document.querySelectorAll('.pat-btn').forEach((btn, i) => {
+                        btn.classList.toggle('active', i === visuallyActivePattern);
+                    });
+                }
                 renderGrid();
                 updateRowControls();
+                updateMuteSoloButtons();
+                updateFxButtons();
+                updateFilterButtons();
+                updateChordButtons();
+                updateProbLockButtons();
                 if (pianoRollVisible) schedulePianoRollDraw();
                 closeVelPopup();
                 closeLockPopup();
+                if (rowControlsPopupOpen >= 0) populateRowControlsPopup(rowControlsPopupOpen);
             }
 
             function undo() {
                 if (undoStack.length === 0) return;
-                const current = {
-                    patterns: JSON.parse(JSON.stringify(patterns)),
-                    euclideanCounts: JSON.parse(JSON.stringify(euclideanCounts)),
-                    rowLengths: JSON.parse(JSON.stringify(rowLengths)),
-                    stepLocks: JSON.parse(JSON.stringify(stepLocks)),
-                };
-                redoStack.push(current);
+                redoStack.push(captureFullSnapshot());
                 const snapshot = undoStack.pop();
                 applyUndoSnapshot(snapshot);
             }
 
             function redo() {
                 if (redoStack.length === 0) return;
-                const current = {
-                    patterns: JSON.parse(JSON.stringify(patterns)),
-                    euclideanCounts: JSON.parse(JSON.stringify(euclideanCounts)),
-                    rowLengths: JSON.parse(JSON.stringify(rowLengths)),
-                    stepLocks: JSON.parse(JSON.stringify(stepLocks)),
-                };
-                undoStack.push(current);
+                undoStack.push(captureFullSnapshot());
                 const snapshot = redoStack.pop();
                 applyUndoSnapshot(snapshot);
             }
 
-            // --- Haptic Feedback Helper ---
+            
             function hapticFeedback(type) {
                 if (!navigator.vibrate) return;
                 switch(type) {
@@ -3277,7 +3330,9 @@
                 const secondsPerBeat = 60.0 / bpm;
                 const baseSixteenth = 0.25 * secondsPerBeat;
             
-                const swingOffset = (swing / 100.0) * baseSixteenth * (2.0 / 3.0);
+                // Swing scaled to beat duration so effect is consistent at all tempos
+                const msPerBeat = 60000 / bpm;
+                const swingOffset = (swing / 100.0) * (msPerBeat / 2) * (2.0 / 3.0);
                 let stepDuration = baseSixteenth;
             
                 if (globalStep % 2 === 0) stepDuration += swingOffset;
@@ -5860,6 +5915,23 @@
 
             // Row Controls Popup listeners
             document.getElementById('rcpClose').addEventListener('click', closeRowControlsPopup);
+
+            window.addEventListener('resize', () => {
+                if (rowControlsPopupOpen < 0) return;
+                const anchor = controlsBtnElements[rowControlsPopupOpen];
+                if (!anchor) return;
+                const popup = document.getElementById('rowControlsPopup');
+                const rect  = anchor.getBoundingClientRect();
+                const pw    = popup.offsetWidth  || 320;
+                const ph    = popup.offsetHeight || 400;
+                let x = rect.right + 6;
+                let y = rect.top;
+                if (x + pw > window.innerWidth  - 8) x = rect.left - pw - 6;
+                if (y + ph > window.innerHeight - 8) y = window.innerHeight - ph - 8;
+                if (y < 8) y = 8;
+                popup.style.left = x + 'px';
+                popup.style.top  = y + 'px';
+            });
 
             document.addEventListener('mousedown', (e) => {
                 const popup = document.getElementById('rowControlsPopup');
