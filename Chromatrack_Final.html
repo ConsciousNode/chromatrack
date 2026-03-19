@@ -5275,6 +5275,12 @@
                 url.searchParams.set('p', compressed);
                 const shareUrl = url.toString();
 
+                // Warn if samples were present — they're stripped from the URL
+                const hasSamples = rowSamples.some(pat => pat.some(s => s !== null));
+                if (hasSamples) {
+                    showToast('Note: sample audio is too large for URLs and has been stripped. Samples in presets are unaffected.', 5000);
+                }
+
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(shareUrl).then(() => {
                         const btn = document.getElementById('shareBtn');
