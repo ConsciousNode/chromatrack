@@ -2681,6 +2681,25 @@
                 if (sel) sel.value = currentLang;
             }
 
+            function showToast(message, duration) {
+                duration = duration || 3000;
+                var toast = document.getElementById('ctToast');
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.id = 'ctToast';
+                    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(24,24,27,0.97);border:1px solid rgba(255,255,255,0.12);color:#e4e4e7;font-size:0.8rem;font-weight:600;padding:10px 20px;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.6);z-index:99999;max-width:480px;text-align:center;transition:opacity 0.3s;display:none;';
+                    document.body.appendChild(toast);
+                }
+                toast.innerText = message;
+                toast.style.opacity = '1';
+                toast.style.display = 'block';
+                clearTimeout(toast._timer);
+                toast._timer = setTimeout(function() {
+                    toast.style.opacity = '0';
+                    setTimeout(function() { toast.style.display = 'none'; }, 300);
+                }, duration);
+            }
+
             function closeLockPopup() {
                 document.getElementById('lockPopup').style.display = 'none';
                 lockPopupRow = -1;
@@ -2951,7 +2970,8 @@
                     currentThemeIdx: currentThemeIdx,
                     grooveIdx: currentGrooveIdx,
                     stepLocks: stepLocks,
-                    rowSamplesB64: rowSamples.map(pat => pat.map(s => s ? { name: s.name, b64: s.b64 } : null)),
+                    // Sample audio omitted from URL — too large (50KB+ per sample)
+                    rowSamplesMeta: rowSamples.map(pat => pat.map(s => s ? { name: s.name } : null)),
                 };
                 try {
                     const json = JSON.stringify(state);
@@ -3038,7 +3058,18 @@
                 recolorRows();
                 applyGridSize();
 
-                if (state.rowSamplesB64) rehydrateSamples(state.rowSamplesB64);
+                if (state.rowSamplesB64) {
+                    rehydrateSamples(state.rowSamplesB64);
+                } else if (state.rowSamplesMeta) {
+                    var missing = [];
+                    state.rowSamplesMeta.forEach(function(pat) {
+                        pat.forEach(function(s) { if (s && s.name) missing.push(s.name); });
+                    });
+                    if (missing.length > 0) {
+                        var uniqueNames = missing.filter(function(v, i, a) { return a.indexOf(v) === i; }).join(', ');
+                        showToast("Samples can't travel in URLs: " + uniqueNames + ". Reload via the ≡ menu.", 6000);
+                    }
+                }
 
                 return true;
             }
@@ -5271,15 +5302,14 @@
                 const compressed = serializeState();
                 if (!compressed) return;
 
+                var hasSamples = rowSamples.some(function(pat) { return pat.some(function(s) { return s !== null; }); });
+                if (hasSamples) {
+                    showToast('Heads up: sample audio is too large for URLs and has been stripped. Use presets to save sessions with samples.', 5000);
+                }
+
                 const url = new URL(window.location.href);
                 url.searchParams.set('p', compressed);
                 const shareUrl = url.toString();
-
-                // Warn if samples were present — they're stripped from the URL
-                const hasSamples = rowSamples.some(pat => pat.some(s => s !== null));
-                if (hasSamples) {
-                    showToast('Note: sample audio is too large for URLs and has been stripped. Samples in presets are unaffected.', 5000);
-                }
 
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(shareUrl).then(() => {
